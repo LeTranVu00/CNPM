@@ -119,10 +119,19 @@ class MainApp(QMainWindow):
 
     # 🟢 HÀM MỞ FORM TIẾP ĐÓN KHÁM
     def show_tiepdon_form(self):
-        """Hiển thị form tiếp đón trong vùng nội dung chính"""
+       """ Hiển thị form tiếp đón trong vùng nội dung chính
         tiepdon_page = TiepDonKham()  # gọi class trong tiep_don_kham.py
         self.content.addWidget(tiepdon_page)
         self.content.setCurrentWidget(tiepdon_page)
+        """
+       if not hasattr(self, 'tiepdon_page'):
+           self.tiepdon_page = TiepDonKham()  #class trong tiep_don_kham
+           self.content.addWidget(self.tiepdon_page)
+       else:
+           #Cap nhat lai du lieu truoc khi hien thi
+            self.tiepdon_page.load_thongke_luottiepdon()
+            self.tiepdon_page.load_danhsach_tiepdon()
+       self.content.setCurrentWidget(self.tiepdon_page)   
 
     def logout(self):
         from login import LoginWindow

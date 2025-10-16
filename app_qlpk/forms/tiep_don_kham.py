@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDateEdit,
     QTableWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-    QGridLayout, QGroupBox, QSplitter, QHeaderView, QCompleter
+    QGridLayout, QGroupBox, QSplitter, QHeaderView, QCompleter, QTableWidgetItem
 )
 from PyQt5.QtCore import Qt, QDate, QStringListModel
 from PyQt5.QtGui import QFont
@@ -13,6 +13,8 @@ class TiepDonKham(QWidget):
         super().__init__()
         self.initUI()
         self.load_benh_nhan_list()
+        self.load_thongke_luottiepdon()
+        self.load_danhsach_tiepdon()
 
         # Khi khởi tạo, load danh sách bệnh nhân vào combobox
     def load_benh_nhan_list(self):
@@ -133,14 +135,14 @@ class TiepDonKham(QWidget):
         group_thongke = QGroupBox("THỐNG KÊ LƯỢT TIẾP ĐÓN")
         group_thongke.setStyleSheet("QGroupBox { font-weight: bold; color: #d32f2f; }")
         thongke_layout = QVBoxLayout()
-        table_tk = QTableWidget(0, 3)
-        table_tk.setHorizontalHeaderLabels(["Phòng khám", "Tiếp đón", "Đã khám"])
-        table_tk.horizontalHeader().setStretchLastSection(True)
-        table_tk.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_tk = QTableWidget(0, 3)
+        self.table_tk.setHorizontalHeaderLabels(["Phòng khám", "Tiếp đón", "Đã khám"])
+        self.table_tk.horizontalHeader().setStretchLastSection(True)
+        self.table_tk.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        table_tk.horizontalHeader().setStretchLastSection(True)
-        table_tk.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        thongke_layout.addWidget(table_tk)
+        self.table_tk.horizontalHeader().setStretchLastSection(True)
+        self.table_tk.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        thongke_layout.addWidget(self.table_tk)
         group_thongke.setLayout(thongke_layout)
 
         top_splitter.addWidget(group_bn)
@@ -218,14 +220,14 @@ class TiepDonKham(QWidget):
         group_ds = QGroupBox("DANH SÁCH PHIẾU TIẾP ĐÓN KCB")
         group_ds.setStyleSheet("QGroupBox { font-weight: bold; color: #d32f2f; }")
         vbox = QVBoxLayout()
-        table = QTableWidget(0, 6)
-        table.setHorizontalHeaderLabels(["Số hồ sơ", "Ngày lập", "Phòng khám", "Họ tên BN", "Bác sĩ khám", "Tình trạng"])
-        table.horizontalHeader().setStretchLastSection(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["Số hồ sơ", "Ngày lập", "Phòng khám", "Họ tên BN", "Bác sĩ khám", "Tình trạng"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        table.horizontalHeader().setStretchLastSection(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        vbox.addWidget(table)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        vbox.addWidget(self.table)
         group_ds.setLayout(vbox)
         main_layout.addWidget(group_ds, 1)  # hệ số giãn = 1 để tự kéo full không gian còn lại
 
@@ -505,6 +507,8 @@ class TiepDonKham(QWidget):
     def save_and_reset(self):
         try:
             self.save_data()
+            self.load_thongke_luottiepdon()
+            self.load_danhsach_tiepdon()
         except Exception as e:
             print("Lỗi khi lưu:", e)
             return
@@ -545,4 +549,53 @@ class TiepDonKham(QWidget):
         except:
             pass
 
+    # Ánh xạ data lên form thống kê lượt tiếp đón
+    def load_thongke_luottiepdon(self):
+        conn = get_connection()
+        cur = conn.cursor()
+        # Lay danh sách phòng khám và số lượt tiếp đón
+        cur.execute("""
+            SELECT phong_kham, COUNT(*) as so_luot, 
+                   SUM(CASE WHEN tinh_trang = 'Đã khám' THEN 1 ELSE 0 END) as da_kham
+            FROM tiep_don
+            GROUP BY phong_kham
+            ORDER BY phong_kham
+        """)  
+        rows = cur.fetchall()
+        conn.close()
+        # Hien thi len bang thong ke
+        self.table_tk.setRowCount(0)
+        for phong_kham, so_luot ,da_kham in rows: 
+            row = self.table_tk.rowCount()
+            self.table_tk.insertRow(row)
+            self.table_tk.setItem(row, 0, QTableWidgetItem(phong_kham))
+            self.table_tk.setItem(row, 1, QTableWidgetItem(str(so_luot)))
+            self.table_tk.setItem(row, 2, QTableWidgetItem(str("-"))) #  "đã khám" xu ly sau 
 
+    # Anh xa data len DANH SACH TIEP DON KCB. 
+    def load_danhsach_tiepdon(self):
+        conn = get_connection()
+        cur = conn.cursor()
+
+        #Lay danh sach tiep don
+        cur.execute("""
+            SELECT td.ma_hoso, td.ngay_tiep_don, td.phong_kham, bn.ho_ten, td.bac_si_kham, td.tinh_trang
+            FROM tiep_don td
+            JOIN benh_nhan bn ON td.benh_nhan_id = bn.id
+            ORDER BY td.ngay_tiep_don DESC 
+
+        """)   
+
+        rows = cur.fetchall()
+        conn.close()
+        # Hien thi len bang thong ke
+        self.table.setRowCount(0)
+        for ma_hoso, ngay_tiep_don, phong_kham, ho_ten, bac_si_kham, tinh_trang in rows: 
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QTableWidgetItem(ma_hoso))
+            self.table.setItem(row, 1, QTableWidgetItem(ngay_tiep_don))
+            self.table.setItem(row, 2, QTableWidgetItem(phong_kham))
+            self.table.setItem(row, 3, QTableWidgetItem(ho_ten))
+            self.table.setItem(row, 4, QTableWidgetItem(bac_si_kham))
+            self.table.setItem(row, 5, QTableWidgetItem(tinh_trang))
