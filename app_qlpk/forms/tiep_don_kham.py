@@ -5,7 +5,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QDate, QStringListModel
 from PyQt5.QtGui import QFont
-from database import get_connection, initialize_database
+#from database import get_connection, initialize_database
+from app_qlpk.database import get_connection, initialize_database #lỗi thì xoá dòng này, dùng Mac thì giữ nguyên
+
 initialize_database()
 
 class TiepDonKham(QWidget):
@@ -15,19 +17,34 @@ class TiepDonKham(QWidget):
         self.load_benh_nhan_list()
 
         # Khi khởi tạo, load danh sách bệnh nhân vào combobox
+        # === THAY ĐỔI: Viết lại load_benh_nhan_list để lưu id vào userData và tạo name->id map
     def load_benh_nhan_list(self):
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT ho_ten FROM benh_nhan ORDER BY ho_ten")
-        names = [row[0] for row in cur.fetchall()]
+        # Thay đổi: lấy id + ho_ten (không cần các trường khác khi chỉ để list)
+        cur.execute("SELECT id, ho_ten FROM benh_nhan ORDER BY ho_ten")
+        rows = cur.fetchall()
         conn.close()
-    
+
         # Gắn danh sách vào combobox và completer
+        # build mapping và thêm item với userData = id
+        self.combo_hoten.blockSignals(True)  # === NOTE === tránh kích hoạt signal khi load list
         self.combo_hoten.clear()
-        self.combo_hoten.addItems(names)
-    
+
+        # tạo mapping name -> id để dùng khi user gõ tên (editable)
+        self.name_id_map = {}
+        names = []
+        for r in rows:
+            bid = r[0]
+            name = r[1] or ""
+            # === THAY ĐỔI: thêm item với userData = id để sau này lấy bằng itemData
+            self.combo_hoten.addItem(name, bid)
+            self.name_id_map[name] = bid
+            names.append(name)
+
         model = QStringListModel(names)
         self.completer.setModel(model)
+        self.combo_hoten.blockSignals(False)
     
     def update_age(self):
         today = QDate.currentDate()
@@ -68,11 +85,18 @@ class TiepDonKham(QWidget):
         self.combo_hoten.setCompleter(self.completer)
         form_bn.addWidget(self.combo_hoten, 0, 1)
 
+        # === THAY ĐỔI: Kết nối sự kiện cho combo_hoten để khi chọn/gõ xong sẽ load tiếp đón ===
+        # Kết nối hiện tại được đặt ở cuối initUI() (sau khi widgets được tạo) để tránh lỗi
+
+
         # Giới tính
         form_bn.addWidget(QLabel("Giới tính "), 0, 2)
         self.gioitinh = QComboBox()
-        self.gioitinh.addItems(["Nam", "Nữ", "Khác"])
+        #khúc này tui nghĩ trong các form y tế thì chỉ cho xác định 2 giới tính (nam/nữ), (khác) là k cần thiết
+        self.gioitinh.addItems(["Nam", "Nữ"])
+        #self.gioitinh.addItems(["Nam", "Nữ", "Khác"])
         form_bn.addWidget(self.gioitinh, 0, 3)
+
 
         # Ngày sinh
         form_bn.addWidget(QLabel("Ngày sinh *"), 1, 0)
@@ -249,6 +273,15 @@ class TiepDonKham(QWidget):
         # Gán sự kiện nút "Nhập mới" để lưu dữ liệu
         self.btn_nhapmoi.clicked.disconnect() if self.btn_nhapmoi.receivers(self.btn_nhapmoi.clicked) else None
         self.btn_nhapmoi.clicked.connect(self.save_and_reset)
+
+        # === THAY ĐỔI: Kết nối sự kiện cho combo_hoten (đặt ở đây vì widgets đã tạo xong) ===
+        try:
+            self.combo_hoten.currentIndexChanged.connect(self.on_patient_selected)  # khi chọn item
+            if self.combo_hoten.lineEdit() is not None:
+                self.combo_hoten.lineEdit().editingFinished.connect(self.on_patient_selected)  # khi gõ xong
+        except Exception:
+            # nếu combo chưa được khởi tạo đúng (dự phòng) thì bỏ qua
+            pass
 
 
         # ---------------------------
@@ -546,3 +579,210 @@ class TiepDonKham(QWidget):
             pass
 
 
+# === THAY ĐỔI: Thêm hàm hỗ trợ lấy phiếu tiep_don mới nhất ===
+    def get_latest_reception(self, benh_nhan_id):
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT * FROM tiep_don
+            WHERE benh_nhan_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (benh_nhan_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return None
+        cols = [d[0] for d in cur.description]
+        rec = {cols[i]: row[i] for i in range(len(cols))}
+        conn.close()
+        return rec
+
+    # === THAY ĐỔI: Thêm hàm lấy thông tin bệnh nhân theo id (dùng khi chọn combo) ===
+    def get_patient_by_id(self, benh_nhan_id):
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM benh_nhan WHERE id = ? LIMIT 1", (benh_nhan_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return None
+        cols = [d[0] for d in cur.description]
+        rec = {cols[i]: row[i] for i in range(len(cols))}
+        conn.close()
+        return rec
+
+    # === THAY ĐỔI: Thêm handler on_patient_selected để populate cả thông tin bệnh nhân và tiếp đón ===
+    def on_patient_selected(self, idx_or_none=None):
+        """
+        idx_or_none: PyQt sẽ gửi index (int) cho currentIndexChanged,
+        hoặc None khi gọi từ editingFinished (đang dùng currentText lookup)
+        """
+        benh_nhan_id = None
+        # nếu signal gửi index
+        try:
+            if isinstance(idx_or_none, int):
+                benh_nhan_id = self.combo_hoten.itemData(idx_or_none)
+        except Exception:
+            benh_nhan_id = None
+
+        # nếu không có id từ index (ví dụ editingFinished), lookup theo text
+        if not benh_nhan_id:
+            name = self.combo_hoten.currentText().strip()
+            benh_nhan_id = getattr(self, "name_id_map", {}).get(name)
+
+        if not benh_nhan_id:
+            # clear phần tiếp đón nếu không tìm thấy id
+            self.clear_reception_fields()
+            return
+
+        # 1) load thông tin bệnh nhân
+        p = self.get_patient_by_id(benh_nhan_id)
+        if p:
+            try:
+                self.combo_hoten.setEditText(p.get("ho_ten", "") or "")
+            except:
+                pass
+            if p.get("gioi_tinh"):
+                idx = self.gioitinh.findText(p.get("gioi_tinh"))
+                if idx >= 0:
+                    self.gioitinh.setCurrentIndex(idx)
+            if p.get("ngay_sinh"):
+                try:
+                    parts = str(p.get("ngay_sinh")).split("-")
+                    if len(parts) >= 3:
+                        y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+                        self.ngaysinh.setDate(QDate(y, m, d))
+                except:
+                    pass
+            if p.get("tuoi") is not None:
+                try:
+                    self.tuoi.setText(str(p.get("tuoi")))
+                except:
+                    pass
+            if p.get("dia_chi") is not None:
+                self.diachi.setText(str(p.get("dia_chi")))
+            if p.get("dien_thoai") is not None:
+                self.dienthoai.setText(str(p.get("dien_thoai")))
+            if p.get("doi_tuong"):
+                idx = self.doituong.findText(p.get("doi_tuong"))
+                if idx >= 0:
+                    self.doituong.setCurrentIndex(idx)
+            if p.get("nghe_nghiep"):
+                self.nghenghiep.setText(str(p.get("nghe_nghiep")))
+            if p.get("nguoi_gioi_thieu"):
+                idx = self.nguoigt.findText(p.get("nguoi_gioi_thieu"))
+                if idx >= 0:
+                    self.nguoigt.setCurrentIndex(idx)
+                else:
+                    try:
+                        self.nguoigt.addItem(p.get("nguoi_gioi_thieu"))
+                        self.nguoigt.setCurrentIndex(self.nguoigt.count() - 1)
+                    except:
+                        pass
+            if p.get("loai_kham"):
+                idx = self.loaikham.findText(p.get("loai_kham"))
+                if idx >= 0:
+                    self.loaikham.setCurrentIndex(idx)
+
+        # 2) load phiếu tiếp đón mới nhất và populate
+        rec = self.get_latest_reception(benh_nhan_id)
+        if not rec:
+            self.clear_reception_fields()
+            return
+
+        try:
+            if rec.get("ma_hoso"):
+                self.input_sohoso.setText(str(rec.get("ma_hoso")))
+            if rec.get("tinh_trang"):
+                idx = self.combo_tinhtrang.findText(rec.get("tinh_trang"))
+                if idx >= 0:
+                    self.combo_tinhtrang.setCurrentIndex(idx)
+            if rec.get("tien_kham") is not None:
+                self.input_tienkham.setText(str(rec.get("tien_kham")))
+            if rec.get("phong_kham"):
+                idx = self.combo_phongkham.findText(rec.get("phong_kham"))
+                if idx >= 0:
+                    self.combo_phongkham.setCurrentIndex(idx)
+                else:
+                    self.combo_phongkham.addItem(rec.get("phong_kham"))
+                    self.combo_phongkham.setCurrentIndex(self.combo_phongkham.count() - 1)
+            if rec.get("ngay_tiep_don"):
+                try:
+                    parts = str(rec.get("ngay_tiep_don")).split("-")
+                    if len(parts) >= 3:
+                        y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+                        self.date_ngaylap.setDate(QDate(y, m, d))
+                except:
+                    pass
+            if rec.get("nv_tiepdon"):
+                idx = self.combo_nvtiepdon.findText(rec.get("nv_tiepdon"))
+                if idx >= 0:
+                    self.combo_nvtiepdon.setCurrentIndex(idx)
+                else:
+                    self.combo_nvtiepdon.addItem(rec.get("nv_tiepdon"))
+                    self.combo_nvtiepdon.setCurrentIndex(self.combo_nvtiepdon.count() - 1)
+            if rec.get("bac_si_kham"):
+                idx = self.combo_bacsi.findText(rec.get("bac_si_kham"))
+                if idx >= 0:
+                    self.combo_bacsi.setCurrentIndex(idx)
+                else:
+                    self.combo_bacsi.addItem(rec.get("bac_si_kham"))
+                    self.combo_bacsi.setCurrentIndex(self.combo_bacsi.count() - 1)
+            if rec.get("huyet_ap"):
+                self.input_huyetap.setText(str(rec.get("huyet_ap")))
+            if rec.get("nhiet_do") is not None:
+                self.input_nhietdo.setText(str(rec.get("nhiet_do")))
+            if rec.get("chieu_cao") is not None:
+                self.input_chieucao.setText(str(rec.get("chieu_cao")))
+            if rec.get("can_nang") is not None:
+                self.input_cannang.setText(str(rec.get("can_nang")))
+        except Exception as e:
+            print("Lỗi khi gán dữ liệu tiếp đón:", e)
+
+    # === THAY ĐỔI: Thêm hàm để clear phần tiếp đón (tách riêng) ===
+    def clear_reception_fields(self):
+        try:
+            self.input_sohoso.clear()
+        except:
+            pass
+        try:
+            self.combo_tinhtrang.setCurrentIndex(0)
+        except:
+            pass
+        try:
+            self.input_tienkham.setText("0")
+        except:
+            pass
+        try:
+            self.combo_phongkham.setCurrentIndex(0)
+        except:
+            pass
+        try:
+            self.date_ngaylap.setDate(QDate.currentDate())
+        except:
+            pass
+        try:
+            self.combo_nvtiepdon.setCurrentIndex(0)
+        except:
+            pass
+        try:
+            self.combo_bacsi.setCurrentIndex(0)
+        except:
+            pass
+        try:
+            self.input_huyetap.clear()
+        except:
+            pass
+        try:
+            self.input_nhietdo.clear()
+        except:
+            pass
+        try:
+            self.input_chieucao.clear()
+        except:
+            pass
+        try:
+            self.input_cannang.clear()
+        except:
+            pass
