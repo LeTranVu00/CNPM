@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QFrame, QStackedWidget, QAction
+    QPushButton, QLabel, QFrame, QStackedWidget, QAction, QAbstractItemView
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -10,6 +10,9 @@ initialize_database()
 
 # 🟢 THÊM DÒNG NÀY: import form tiếp đón khám
 from forms.tiep_don_kham import TiepDonKham
+from forms.chi_dinh_dich_vu import ChiDinhDichVu
+from forms.form_thong_ke_thu_chi import ThongKeThuChi
+from forms.form_thu_tien_dich_vu import ThuTienDichVu
 
 
 class MainApp(QMainWindow):
@@ -35,6 +38,15 @@ class MainApp(QMainWindow):
         thuoc_menu = menubar.addMenu("Thuốc - VTYT")
         thuchi_menu = menubar.addMenu("Thu chi")
         baocao_menu = menubar.addMenu("Báo cáo")
+# Them action cho menu thu chi
+        thutien_action = QAction("💰 Thu tiền dịch vụ", self)
+        thutien_action.triggered.connect(self.show_thutien_dichvu)
+
+        thongke_action = QAction("📊 Thống kê thu chi", self)
+        thongke_action.triggered.connect(self.show_thongke_thu_chi)
+
+        thuchi_menu.addAction(thutien_action)
+        thuchi_menu.addAction(thongke_action)
 
         # Thêm action mẫu
         logout_action = QAction("Đăng xuất", self)
@@ -77,10 +89,10 @@ class MainApp(QMainWindow):
 
         # ----- NÚT CHỨC NĂNG -----
         self.btn_tiepdon = QPushButton("➕ Tiếp đón khám")
-        btn_chidinh = QPushButton("🧾 Chỉ định dịch vụ")
-        btn_lapphieu = QPushButton("📋 Lập phiếu khám")
+        self.btn_chidinh = QPushButton("🧾 Chỉ định dịch vụ")
+        self.btn_lapphieu = QPushButton("📋 Lập phiếu khám")
 
-        for btn in [self.btn_tiepdon, btn_chidinh, btn_lapphieu]:
+        for btn in [self.btn_tiepdon, self.btn_chidinh, self.btn_lapphieu]:
             sidebar_layout.addWidget(btn)
 
         sidebar_layout.addSpacing(10)
@@ -111,6 +123,11 @@ class MainApp(QMainWindow):
         # 🟢 THÊM SỰ KIỆN NHẤN NÚT "TIẾP ĐÓN KHÁM"
         self.btn_tiepdon.clicked.connect(self.show_tiepdon_form)
 
+        # 🟢 THÊM SỰ KIỆN NHẤN NÚT "CHỈ ĐỊNH DỊCH VỤ"
+        self.btn_chidinh.clicked.connect(self.show_chidinh_form)
+
+        
+
         # Gắn vào layout chính
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.content)
@@ -133,14 +150,35 @@ class MainApp(QMainWindow):
             self.tiepdon_page.load_danhsach_tiepdon()
        self.content.setCurrentWidget(self.tiepdon_page)   
 
+    # 🟢 HÀM MỞ FORM CHỈ ĐỊNH DỊCH VỤ
+    def show_chidinh_form(self):
+        """Hiển thị form Chỉ định dịch vụ"""
+        chidinh_page = ChiDinhDichVu() # gọi class trong chi_dinh_dich_vu.py
+        self.content.addWidget(chidinh_page)
+        self.content.setCurrentWidget(chidinh_page)
+
+    def show_thongke_thu_chi(self):
+        # Hien thi form thong ke thu chi
+        thongkethuchi_page = ThongKeThuChi()
+        self.content.addWidget(thongkethuchi_page)
+        self.content.setCurrentWidget(thongkethuchi_page)
+
+    def show_thutien_dichvu(self):
+        # Hien thi form thu tien dich vu
+        thutien_page = ThuTienDichVu()
+        self.content.addWidget(thutien_page)
+        self.content.setCurrentWidget(thutien_page)
+    
+
     def logout(self):
-        from login import LoginWindow
-        self.login_window = LoginWindow()
-        self.login_window.show()
-        self.close()
+            from login import LoginWindow
+            self.login_window = LoginWindow()
+            self.login_window.show()
+            self.close()
 
 
 if __name__ == "__main__":
+    initialize_database()
     app = QApplication(sys.argv)
     app.setFont(QFont("Arial", 10))
     window = MainApp("admin")
