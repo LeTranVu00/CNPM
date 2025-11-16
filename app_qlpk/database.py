@@ -23,6 +23,7 @@ def initialize_database():
             tuoi INTEGER,
             dia_chi TEXT,
             dien_thoai TEXT,
+            so_cccd TEXT,
             doi_tuong TEXT,
             nghe_nghiep TEXT,
             nguoi_gioi_thieu TEXT,
@@ -43,7 +44,6 @@ def initialize_database():
             loai_kham TEXT,
             tien_kham REAL,
             nv_tiepdon TEXT,
-            cap_cuu INTEGER DEFAULT 0,
             huyet_ap TEXT,
             nhiet_do REAL,
             chieu_cao REAL,
@@ -52,6 +52,17 @@ def initialize_database():
         )
     """)
     conn.commit()
+
+    # 🧹 Chỉ reset ID nếu database trống (để không ảnh hưởng dữ liệu thật)
+    cursor.execute("SELECT COUNT(*) FROM benh_nhan")
+    benhnhan_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM tiep_don")
+    tiepdon_count = cursor.fetchone()[0]
+
+    if benhnhan_count == 0 and tiepdon_count == 0:
+        cursor.execute("DELETE FROM sqlite_sequence;")
+        print("🔁 Đã reset lại ID tự động vì database đang trống.")
+        
     conn.close()
 
 
