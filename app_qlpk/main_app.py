@@ -101,10 +101,12 @@ class MainApp(QMainWindow):
         title2.setStyleSheet("color: #1565c0; padding-left: 15px;")
         sidebar_layout.addWidget(title2)
 
-        btn_thutien = QPushButton("💰 Thu tiền dịch vụ")
-        btn_doanhthu = QPushButton("📊 Doanh thu tổng hợp")
-        sidebar_layout.addWidget(btn_thutien)
-        sidebar_layout.addWidget(btn_doanhthu)
+        self.btn_thutien = QPushButton("💰 Thu tiền dịch vụ")
+        self.btn_doanhthu = QPushButton("📊 Doanh thu tổng hợp")
+        # sidebar_layout.addWidget(btn_thutien)
+        # sidebar_layout.addWidget(btn_doanhthu)
+        for btn in [self.btn_thutien, self.btn_doanhthu]:
+            sidebar_layout.addWidget(btn)
         sidebar_layout.addStretch()
 
         # ----- KHU VỰC HIỂN THỊ NỘI DUNG -----
@@ -126,7 +128,8 @@ class MainApp(QMainWindow):
         # 🟢 THÊM SỰ KIỆN NHẤN NÚT "CHỈ ĐỊNH DỊCH VỤ"
         self.btn_chidinh.clicked.connect(self.show_chidinh_form)
 
-        
+        # 
+        self.btn_thutien.clicked.connect(self.show_thutien_dichvu)
 
         # Gắn vào layout chính
         main_layout.addWidget(self.sidebar)

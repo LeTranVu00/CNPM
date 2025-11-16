@@ -133,6 +133,9 @@ class ThuTienDichVu(QtWidgets.QWidget):
         groupBox2_layout.addWidget(self.frmPrintPreView)
         
         main_layout.addWidget(self.groupBox_2, 3)
-        
+
         # Kết thúc setupUi
         self.setLayout(main_layout)
+
+
+        
