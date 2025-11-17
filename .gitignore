@@ -1,3 +1,25 @@
+# Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Databases
 *.db
+
+# Logs
+*.log
+
+# Output files
+app_qlpk/output/*
+!app_qlpk/output/.gitkeep
+
+# Virtual environment
+venv/
+.venv/
+ENV/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec
