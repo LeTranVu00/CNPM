@@ -1,6 +1,26 @@
 import sys
-sys.path.append(r'c:\app_qlpk')
-from database import get_connection
+import os
+
+# --- FIX: Cấu hình đường dẫn động (Hoạt động trên macOS/Windows/Linux) ---
+# 1. Lấy đường dẫn file hiện tại: .../app_qlpk/scripts/list_patient_details.py
+current_file = os.path.abspath(__file__)
+# 2. Lấy thư mục chứa script: .../app_qlpk/scripts
+current_dir = os.path.dirname(current_file)
+# 3. Lấy thư mục gốc dự án: .../app_qlpk (Nơi chứa database.py)
+project_root = os.path.dirname(current_dir)
+
+# 4. Thêm vào đầu danh sách sys.path để ưu tiên tìm module ở đây
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# --- Import Database ---
+try:
+    from database import get_connection
+except ImportError as e:
+    print(f"❌ Lỗi Import: {e}")
+    print(f"ℹ️  Đường dẫn project_root tính toán được: {project_root}")
+    sys.exit(1)
+
 
 def inspect_patient(pid):
     conn = get_connection()

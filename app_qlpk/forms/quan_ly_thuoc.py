@@ -1,11 +1,25 @@
+import os
+import sys
+
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QTableWidget, QTableWidgetItem, QMessageBox, QComboBox, QDialog, QFormLayout,
     QHeaderView, QSizePolicy, QTabWidget, QTextEdit, QCompleter, QDateEdit
 )
 from PyQt5.QtCore import Qt, QDateTime, QTimer, QDate, pyqtSignal
-from app_signals import app_signals
-from database import get_connection
+# --- CẤU HÌNH ĐƯỜNG DẪN (QUAN TRỌNG) ---
+# Giúp Python nhìn thấy các file database.py và app_signals.py ở thư mục cha
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# --- IMPORT MODULE ---
+try:
+    from app_signals import app_signals
+    from database import get_connection
+except ImportError as e:
+    print(f"Lỗi Import: {e}")
+    app_signals = None
+    # Trả về None để các hàm kiểm tra 'if not conn:' hoạt động thay vì crash
+    get_connection = lambda: None
 
 
 class QuanLyThuoc(QWidget):

@@ -1,6 +1,20 @@
 import sys
-sys.path.append(r'c:\app_qlpk')
-from database import get_connection
+import os
+
+from app_qlpk.database import get_connection
+
+# --- FIX: Cấu hình đường dẫn để tìm thấy database.py ở thư mục cha ---
+# 1. Lấy đường dẫn file hiện tại
+current_file = os.path.abspath(__file__)
+# 2. Lấy thư mục cha của scripts (tức là thư mục dự án app_qlpk)
+project_root = os.path.dirname(os.path.dirname(current_file))
+
+# 3. Chèn vào ĐẦU danh sách sys.path để ưu tiên tìm module ở đây
+# (Dùng insert(0, ...) an toàn hơn append)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import database
 
 conn = get_connection()
 cur = conn.cursor()

@@ -1,9 +1,29 @@
 import sys
-sys.path.append(r'c:\app_qlpk')
-from database import get_connection
+import os
+
+# --- FIX: Tự động tìm đường dẫn thư mục gốc (app_qlpk) ---
+# Lấy đường dẫn tuyệt đối của file script hiện tại
+current_file_path = os.path.abspath(__file__)
+# Lấy thư mục chứa script này
+current_dir = os.path.dirname(current_file_path)
+# Lấy thư mục cha - Nơi chứa database.py
+project_root = os.path.dirname(current_dir)
+
+# Thêm vào sys.path nếu chưa có để Python tìm thấy database.py
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+try:
+    from database import get_connection
+except ImportError:
+    print("❌ Không tìm thấy module 'database'. Kiểm tra lại cấu trúc thư mục.")
+    sys.exit(1)
+
+# --- LOGIC CHÍNH (Code gốc của bạn) ---
 conn = get_connection()
 cur = conn.cursor()
 pid = 7
+
 print('PATIENT', pid)
 cur.execute('SELECT ho_ten FROM benh_nhan WHERE id = ?', (pid,))
 p = cur.fetchone()

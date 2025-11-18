@@ -1,14 +1,34 @@
-from database import create_user, get_connection
+import sys
+import os
+
+# --- FIX: Thêm thư mục cha vào đường dẫn hệ thống ---
+# Lấy đường dẫn tuyệt đối của file này: .../app_qlpk/scripts/create_sample_accounts.py
+current_file_path = os.path.abspath(__file__)
+# Lấy thư mục chứa nó: .../app_qlpk/scripts
+current_dir = os.path.dirname(current_file_path)
+# Lấy thư mục cha (root project): .../app_qlpk
+parent_dir = os.path.dirname(current_dir)
+
+# Thêm vào sys.path để Python tìm thấy file database.py
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+try:
+    from database import create_user, get_connection
+except ImportError as e:
+    print(f"Lỗi Import: {e}")
+    sys.exit(1)
 
 def ensure_user(username, password, role):
     try:
+        # create_user trả về True nếu tạo mới thành công, False nếu trùng hoặc lỗi
         created = create_user(username, password, role=role)
         if created:
-            print(f"Created user: {username} with role {role}")
+            print(f"✅ Đã tạo user: {username} (Quyền: {role})")
         else:
-            print(f"User {username} not created (possibly exists)")
+            print(f"⚠️ User {username} đã tồn tại hoặc lỗi.")
     except Exception as e:
-        print(f"Could not create user {username}: {e}")
+        print(f"❌ Lỗi khi tạo user {username}: {e}")
 
 if __name__ == '__main__':
     # Create sample accounts for testing roles
