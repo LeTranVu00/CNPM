@@ -1,7 +1,0 @@
-from PyQt5.QtCore import QObject, pyqtSignal
-
-class AppSignals(QObject):
-    # emits benh_nhan_id (int)
-    patient_selected = pyqtSignal(int)
-
-app_signals = AppSignals()
