@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QComboBox, QMessageBox, QCheckBox)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPixmap
+from database import verify_user, get_user_role, start_user_session
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -45,7 +46,6 @@ class LoginWindow(QMainWindow):
         username_label.setFont(QFont("Arial", 10))
         self.username_input = QLineEdit()
         self.username_input.setFont(QFont("Arial", 10))
-        self.username_input.setText("pacsi")  # Default value
         username_layout.addWidget(username_label)
         username_layout.addWidget(self.username_input)
         
@@ -57,7 +57,6 @@ class LoginWindow(QMainWindow):
         self.password_input = QLineEdit()
         self.password_input.setFont(QFont("Arial", 10))
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setText("123")  # Default value
         password_layout.addWidget(password_label)
         password_layout.addWidget(self.password_input)
         
@@ -133,24 +132,42 @@ class LoginWindow(QMainWindow):
         
         # Xử lý đăng nhập
         if self.authenticate(username, password):
+            # Start a user session and remember the session id to pass to MainApp
+            try:
+                session_id = start_user_session(username)
+            except Exception:
+                session_id = None
+            # store for use in open_main_app
+            try:
+                self._started_session_id = session_id
+            except Exception:
+                pass
             QMessageBox.information(self, "Thành công", "Đăng nhập thành công!")
             self.open_main_app()
         else:
             QMessageBox.critical(self, "Lỗi", "Sai tên đăng nhập hoặc mật khẩu!")
     
     def authenticate(self, username, password):
-        users = {
-            "tieptan": "123",
-            "bacsi": "123", 
-            "pacsi": "123",
-            "admin": "123"
-        }
-        
-        return username in users and users[username] == password
+        # Authenticate against users table in database
+        try:
+            return verify_user(username, password)
+        except Exception:
+            return False
     
     def open_main_app(self):
         from main_app import MainApp
-        self.main_app = MainApp(self.username_input.text())
+        # This function may receive a session id when called from handle_login
+        # but keep backward compatibility: if not present start_main will be called without.
+        try:
+            session_id = getattr(self, '_started_session_id', None)
+        except Exception:
+            session_id = None
+        # If handle_login passed session via attribute, use it; otherwise None
+        if session_id is None:
+            # Fallback: don't have session recorded here; just open MainApp with username
+            self.main_app = MainApp(self.username_input.text())
+        else:
+            self.main_app = MainApp(self.username_input.text(), session_id=session_id)
         self.main_app.show()
         self.close()
 
