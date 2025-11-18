@@ -1,4 +1,6 @@
 import sys
+import os
+
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDateEdit,
     QSpinBox, QTableWidget, QTableWidgetItem, QPushButton, QTextEdit,
@@ -6,11 +8,27 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QDate, QSortFilterProxyModel, pyqtSignal, QTimer
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from database import get_connection
-from signals import app_signals
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 
+# --- CẤU HÌNH ĐƯỜNG DẪN ĐỂ IMPORT TỪ THƯ MỤC CHA ---
+# Lấy đường dẫn thư mục hiện tại, sau đó lấy thư mục cha
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+# Import module từ thư mục cha
+try:
+    from database import get_connection
+    # Tên file là app_signals.py, không phải signals.py
+    from app_signals import app_signals
+except ImportError as e:
+    print(f"Lỗi Import: {e}")
+    # Fallback để không crash IDE
+    get_connection = None
+    app_signals = None
 
 class ChonThuocDialog(QDialog):
     def __init__(self, parent=None):

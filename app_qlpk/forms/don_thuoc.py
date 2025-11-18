@@ -1,4 +1,12 @@
 import sys
+import os
+
+# --- CẤU HÌNH ĐƯỜNG DẪN IMPORT ---
+# Thêm thư mục cha vào hệ thống để tìm thấy database.py và app_signals.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDateEdit, QTableWidget,
     QTableWidgetItem, QPushButton, QTextEdit, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -7,22 +15,25 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtCore import Qt, QDate, QSortFilterProxyModel, pyqtSignal
-from app_signals import app_signals
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from database import get_connection
+
+# --- IMPORT MODULE TỪ THƯ MỤC CHA ---
+try:
+    from app_signals import app_signals
+    from database import get_connection
+except ImportError as e:
+    print(f"Lỗi Import: {e}")
+    # Fallback giả lập để không crash IDE khi xem code
+    app_signals = None
+    get_connection = lambda: None
 
 
 class NoPopupComboBox(QComboBox):
     """A QComboBox variant that displays the current text but does not
     show a popup when clicked and hides the drop-down arrow.
-
-    This keeps existing code that uses currentIndex/currentData working
-    while removing the visual dropdown affordance and preventing user
-    interaction via the popup.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # hide the drop-down arrow and minimize the drop-down area
         try:
             self.setStyleSheet(
                 "QComboBox::drop-down { width: 0px; border: none; }"
@@ -32,7 +43,6 @@ class NoPopupComboBox(QComboBox):
             pass
 
     def showPopup(self):
-        # Prevent the popup from opening
         return
 
 
@@ -47,15 +57,12 @@ class NhapGhiChuDialog(QDialog):
     
     def initUI(self):
         layout = QVBoxLayout()
-        
-        # Add text edit
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Nhập ghi chú vào đây...")
         if self.current_text and self.current_text != "Nhấn để nhập":
             self.text_edit.setText(self.current_text)
         layout.addWidget(self.text_edit)
         
-        # Buttons
         btn_layout = QHBoxLayout()
         ok_btn = QPushButton("OK")
         ok_btn.clicked.connect(self.accept_note)
@@ -64,12 +71,11 @@ class NhapGhiChuDialog(QDialog):
         btn_layout.addWidget(ok_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
-        
         self.setLayout(layout)
     
     def accept_note(self):
         self.note = self.text_edit.toPlainText()
-        if self.note.strip():  # Only accept if note is not empty
+        if self.note.strip():
             self.accept()
 
 class ChonLieuDungDialog(QDialog):
@@ -82,28 +88,17 @@ class ChonLieuDungDialog(QDialog):
 
     def initUI(self):
         layout = QVBoxLayout()
-
-        # Danh sách các liều dùng phổ biến
         self.model = QStandardItemModel()
         common_doses = [
-            "Ngày uống 1/2V sau ăn sáng",
-            "Ngày uống 1/2V sau ăn tối",
-            "Ngày uống 1/2V trước ăn sáng",
-            "Ngày uống 1/2V trước ăn tối",
-            "Ngày uống 1V sau ăn sáng",
-            "Ngày uống 1V sau ăn tối",
-            "Ngày uống 1V sau ăn trưa",
-            "Ngày uống 1V trước ăn sáng",
-            "Ngày uống 1V trước ăn tối",
-            "Ngày uống 1V trước ăn trưa",
-            "Ngày uống 2 lần sau ăn sáng và tối",
-            "Ngày uống 2 lần trước ăn sáng và tối",
-            "Ngày uống 3 lần sau ăn",
-            "Ngày uống 3 lần trước ăn",
-            "Dùng khi cần thiết",
-            "Ngày 1 lần sau ăn sáng",
-            "Ngày 1 lần sau ăn tối",
-            "Ngày 1 lần trước khi ngủ"
+            "Ngày uống 1/2V sau ăn sáng", "Ngày uống 1/2V sau ăn tối",
+            "Ngày uống 1/2V trước ăn sáng", "Ngày uống 1/2V trước ăn tối",
+            "Ngày uống 1V sau ăn sáng", "Ngày uống 1V sau ăn tối",
+            "Ngày uống 1V sau ăn trưa", "Ngày uống 1V trước ăn sáng",
+            "Ngày uống 1V trước ăn tối", "Ngày uống 1V trước ăn trưa",
+            "Ngày uống 2 lần sau ăn sáng và tối", "Ngày uống 2 lần trước ăn sáng và tối",
+            "Ngày uống 3 lần sau ăn", "Ngày uống 3 lần trước ăn",
+            "Dùng khi cần thiết", "Ngày 1 lần sau ăn sáng",
+            "Ngày 1 lần sau ăn tối", "Ngày 1 lần trước khi ngủ"
         ]
         
         for dose in common_doses:
@@ -116,15 +111,11 @@ class ChonLieuDungDialog(QDialog):
         self.list_view.setSelectionBehavior(QTableView.SelectRows)
         self.list_view.setSelectionMode(QTableView.SingleSelection)
         self.list_view.doubleClicked.connect(self.accept_selection)
-        # Set column width to fill the dialog
         self.list_view.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        # Set alternating row colors for better readability
         self.list_view.setAlternatingRowColors(True)
-        # Set a minimum size for better appearance
         self.list_view.setMinimumSize(580, 400)
         layout.addWidget(self.list_view)
 
-        # Buttons
         btn_layout = QHBoxLayout()
         select_btn = QPushButton("Chọn")
         select_btn.clicked.connect(self.accept_selection)
@@ -133,7 +124,6 @@ class ChonLieuDungDialog(QDialog):
         btn_layout.addWidget(select_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
-
         self.setLayout(layout)
 
     def accept_selection(self):
@@ -153,34 +143,27 @@ class ChonThuocDialog(QDialog):
 
     def initUI(self):
         layout = QVBoxLayout()
-
-        # Tạo model cho table view
         self.model = QStandardItemModel()
         self.model.setHorizontalHeaderLabels(["Mã thuốc", "Tên sản phẩm", "Đơn vị", "Tồn kho"])
 
-        # Tạo proxy model để filter
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setFilterKeyColumn(-1)  # Search all columns
+        self.proxy_model.setFilterKeyColumn(-1)
         self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
-        # Search box
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Tìm kiếm thuốc...")
         self.search_box.textChanged.connect(self.filter_drugs)
         layout.addWidget(self.search_box)
 
-        # Table view
         self.table_view = QTableView()
         self.table_view.setModel(self.proxy_model)
-    # Kéo dài các cột để chiếm toàn bộ chiều rộng dialog
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.setSelectionBehavior(QTableView.SelectRows)
         self.table_view.setSelectionMode(QTableView.SingleSelection)
         self.table_view.doubleClicked.connect(self.accept_selection)
         layout.addWidget(self.table_view)
 
-        # Buttons
         btn_layout = QHBoxLayout()
         select_btn = QPushButton("Chọn")
         select_btn.clicked.connect(self.accept_selection)
@@ -189,23 +172,22 @@ class ChonThuocDialog(QDialog):
         btn_layout.addWidget(select_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
-
         self.setLayout(layout)
 
     def load_drugs(self):
         conn = get_connection()
         cursor = conn.cursor()
-        # include don_vi so we can auto-fill unit when a drug is selected
         cursor.execute("SELECT ma_thuoc, ten_thuoc, don_vi, ton_kho FROM danh_muc_thuoc")
         drugs = cursor.fetchall()
         conn.close()
 
         for drug in drugs:
-            ma_thuoc = QStandardItem(str(drug[0]))
-            ten_thuoc = QStandardItem(str(drug[1]))
-            don_vi = QStandardItem(str(drug[2] or ""))
-            ton_kho = QStandardItem(str(drug[3]))
-            self.model.appendRow([ma_thuoc, ten_thuoc, don_vi, ton_kho])
+            self.model.appendRow([
+                QStandardItem(str(drug[0])),
+                QStandardItem(str(drug[1])),
+                QStandardItem(str(drug[2] or "")),
+                QStandardItem(str(drug[3]))
+            ])
 
     def filter_drugs(self, text):
         self.proxy_model.setFilterFixedString(text)
@@ -214,19 +196,13 @@ class ChonThuocDialog(QDialog):
         indexes = self.table_view.selectedIndexes()
         if indexes:
             row = indexes[0].row()
-            # read ma, ten, don_vi from proxy model
             ma = self.proxy_model.data(self.proxy_model.index(row, 0))
             ten = self.proxy_model.data(self.proxy_model.index(row, 1))
             don_vi = self.proxy_model.data(self.proxy_model.index(row, 2))
-            self.selected_drug = {
-                'ma_thuoc': ma,
-                'ten_thuoc': ten,
-                'don_vi': don_vi
-            }
+            self.selected_drug = {'ma_thuoc': ma, 'ten_thuoc': ten, 'don_vi': don_vi}
             self.accept()
 
 class KeDonThuoc(QWidget):
-    # Signal để thông báo khi dữ liệu được xuất
     medicine_exported = pyqtSignal()
     
     def __init__(self, phieu_kham_id=None, benh_nhan_id=None):
@@ -235,248 +211,130 @@ class KeDonThuoc(QWidget):
         self.benh_nhan_id = benh_nhan_id
         self.setWindowTitle("KÊ ĐƠN THUỐC")
         self.setGeometry(200, 100, 1250, 750)
-        # Flag to suppress itemChanged handlers during programmatic updates
         self._suppress_item_changed = False
         self.initUI()
         
-        # If a patient ID was provided, auto-select that patient after initializing
         if self.benh_nhan_id:
             self.auto_select_patient(self.benh_nhan_id)
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
-        # Minimize spacing/margins for a more compact form, especially when zoomed
         self.main_layout.setSpacing(4)
         self.main_layout.setContentsMargins(6, 6, 6, 6)
 
-        # ======== TIÊU ĐỀ ========
         title = QLabel("ĐƠN THUỐC")
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size: 20px; font-weight: bold; color: #0066cc;")
         self.main_layout.addWidget(title)
 
-        # ======== THÔNG TIN BỆNH NHÂN ========
         group_bn = QGroupBox("THÔNG TIN BỆNH NHÂN")
         group_bn.setStyleSheet("QGroupBox { font-weight: bold; color: #0078D7; }")
         grid_bn = QGridLayout()
         grid_bn.setSpacing(6)
         grid_bn.setContentsMargins(6, 6, 6, 6)
 
-        # Initialize widgets
-        # Use a non-popup combobox for patient display: show selected name
-        # but prevent the user from opening the dropdown (no arrow)
         self.hoten = NoPopupComboBox()
         self.hoten.setEditable(False)
-        # currentIndexChanged is still used when programmatically selecting patients
         self.hoten.currentIndexChanged.connect(self.on_patient_selected)
         
-        self.ngaysinh = QDateEdit(QDate.currentDate())
-        self.ngaysinh.setCalendarPopup(True)
-        self.ngaysinh.setReadOnly(True)
-        
-        self.gioitinh = QLineEdit()
-        self.gioitinh.setReadOnly(True)
-        
-        self.dienthoai = QLineEdit()
-        self.dienthoai.setReadOnly(True)
-        
-        self.tuoi = QLineEdit()
-        self.tuoi.setReadOnly(True)
-        
-        self.sohoso = QLineEdit()
-        self.sohoso.setReadOnly(True)
-        
-        self.sophieukham = QLineEdit()
-        self.sophieukham.setReadOnly(True)
-        self.sophieukham = QLineEdit()
-        self.diachi = QLineEdit()
-        self.diachi.setReadOnly(True)
-        
-        self.chandoan = QLineEdit()
-        self.chandoan.setReadOnly(True)
-        
-        self.diungthuoc = QLineEdit()
-        self.diungthuoc.setReadOnly(True)
-        
-        self.songay = QSpinBox()
-        self.songay.setMinimum(1)
-        self.songay.setMaximum(100)
-        self.taikham = QDateEdit(QDate.currentDate())
-        self.taikham.setCalendarPopup(True)
+        self.ngaysinh = QDateEdit(QDate.currentDate()); self.ngaysinh.setCalendarPopup(True); self.ngaysinh.setReadOnly(True)
+        self.gioitinh = QLineEdit(); self.gioitinh.setReadOnly(True)
+        self.dienthoai = QLineEdit(); self.dienthoai.setReadOnly(True)
+        self.tuoi = QLineEdit(); self.tuoi.setReadOnly(True)
+        self.sohoso = QLineEdit(); self.sohoso.setReadOnly(True)
+        self.sophieukham = QLineEdit(); self.sophieukham.setReadOnly(True)
+        self.diachi = QLineEdit(); self.diachi.setReadOnly(True)
+        self.chandoan = QLineEdit(); self.chandoan.setReadOnly(True)
+        self.diungthuoc = QLineEdit(); self.diungthuoc.setReadOnly(True)
+        self.songay = QSpinBox(); self.songay.setMinimum(1); self.songay.setMaximum(100)
+        self.taikham = QDateEdit(QDate.currentDate()); self.taikham.setCalendarPopup(True)
         self.tongtien = QLineEdit("0")
-        self.doituong = QLineEdit()
-        self.doituong.setReadOnly(True)
+        self.doituong = QLineEdit(); self.doituong.setReadOnly(True)
         
-        self.loaithuoc = QComboBox()
-        self.loaithuoc.addItems(["Thuốc cơ bản", "Thuốc khác"])
-        self.ngaykedon = QDateEdit(QDate.currentDate())
-        self.ngaykedon.setCalendarPopup(True)
-        self.bacsi = QComboBox()
-        self.bacsi.addItems(["Bác sĩ"])
-        self.quaythuoc = QComboBox()
-        self.quaythuoc.addItems(["Kho thuốc"])
+        self.loaithuoc = QComboBox(); self.loaithuoc.addItems(["Thuốc cơ bản", "Thuốc khác"])
+        self.ngaykedon = QDateEdit(QDate.currentDate()); self.ngaykedon.setCalendarPopup(True)
+        self.bacsi = QComboBox(); self.bacsi.addItems(["Bác sĩ"])
+        self.quaythuoc = QComboBox(); self.quaythuoc.addItems(["Kho thuốc"])
         self.nguoilapphieu = QLineEdit()
+        
         self.donmau = QComboBox()
-        # Đơn mẫu: will populate from DB; keep special items
         self.donmau.addItem("--Chọn mẫu--", None)
         self.donmau.addItem("Xóa đơn mẫu", "delete")
         self.donmau.currentIndexChanged.connect(self.on_donmau_changed)
-        # Buttons for saving/deleting templates
+        
         self.btn_save_template = QPushButton("Lưu mẫu")
         self.btn_save_template.setMinimumWidth(80)
         self.btn_save_template.clicked.connect(self.on_save_template)
-        try:
-            self._style_button(self.btn_save_template, primary=False)
-        except Exception:
-            pass
+        self._style_button(self.btn_save_template, primary=False)
+
         self.btn_delete_template = QPushButton("Xóa mẫu")
         self.btn_delete_template.setMinimumWidth(80)
         self.btn_delete_template.clicked.connect(self.on_delete_template)
-        try:
-            self._style_button(self.btn_delete_template, primary=False)
-        except Exception:
-            pass
-        # Load templates from DB
-        try:
-            self.load_templates()
-        except Exception:
-            pass
-        # Ensure custom 'thuốc khác' table exists for persisting user-entered items
-        try:
-            self.ensure_thuoc_khac_table()
-        except Exception:
-            pass
+        self._style_button(self.btn_delete_template, primary=False)
+
+        self.load_templates()
+        self.ensure_thuoc_khac_table()
+        
         self.doncu = QComboBox()
         self.doncu.currentIndexChanged.connect(self.on_doncu_changed)
-        
-        # Load patients into combobox
         self.load_patients()
 
-        # --- Hàng 1 ---
-        grid_bn.addWidget(QLabel("Bệnh nhân "), 0, 0)
-        grid_bn.addWidget(self.hoten, 0, 1)
-        grid_bn.addWidget(QLabel("Ngày sinh"), 0, 2)
-        grid_bn.addWidget(self.ngaysinh, 0, 3)
-        grid_bn.addWidget(QLabel("Giới tính"), 0, 4)
-        grid_bn.addWidget(self.gioitinh, 0, 5)
-        grid_bn.addWidget(QLabel("Bác sĩ kê đơn "), 0, 6)
-        grid_bn.addWidget(self.bacsi, 0, 7)
+        # Layout Grid
+        grid_bn.addWidget(QLabel("Bệnh nhân "), 0, 0); grid_bn.addWidget(self.hoten, 0, 1)
+        grid_bn.addWidget(QLabel("Ngày sinh"), 0, 2); grid_bn.addWidget(self.ngaysinh, 0, 3)
+        grid_bn.addWidget(QLabel("Giới tính"), 0, 4); grid_bn.addWidget(self.gioitinh, 0, 5)
+        grid_bn.addWidget(QLabel("Bác sĩ kê đơn "), 0, 6); grid_bn.addWidget(self.bacsi, 0, 7)
 
-        # --- Hàng 2 ---
-        grid_bn.addWidget(QLabel("Điện thoại"), 1, 0)
-        grid_bn.addWidget(self.dienthoai, 1, 1)
-        grid_bn.addWidget(QLabel("Tuổi"), 1, 2)
-        grid_bn.addWidget(self.tuoi, 1, 3)
-        grid_bn.addWidget(QLabel("Số hồ sơ"), 1, 4)
-        grid_bn.addWidget(self.sohoso, 1, 5)
-        grid_bn.addWidget(QLabel("Quầy thuốc"), 1, 6)
-        grid_bn.addWidget(self.quaythuoc, 1, 7)
+        grid_bn.addWidget(QLabel("Điện thoại"), 1, 0); grid_bn.addWidget(self.dienthoai, 1, 1)
+        grid_bn.addWidget(QLabel("Tuổi"), 1, 2); grid_bn.addWidget(self.tuoi, 1, 3)
+        grid_bn.addWidget(QLabel("Số hồ sơ"), 1, 4); grid_bn.addWidget(self.sohoso, 1, 5)
+        grid_bn.addWidget(QLabel("Quầy thuốc"), 1, 6); grid_bn.addWidget(self.quaythuoc, 1, 7)
 
-        # --- Hàng 3 ---
-        grid_bn.addWidget(QLabel("Địa chỉ"), 2, 0)
-        grid_bn.addWidget(self.diachi, 2, 1, 1, 3)
-        grid_bn.addWidget(QLabel("Số phiếu khám"), 2, 4)
-        grid_bn.addWidget(self.sophieukham, 2, 5)
-        grid_bn.addWidget(QLabel("Người lập phiếu"), 2, 6)
-        grid_bn.addWidget(self.nguoilapphieu, 2, 7)
+        grid_bn.addWidget(QLabel("Địa chỉ"), 2, 0); grid_bn.addWidget(self.diachi, 2, 1, 1, 3)
+        grid_bn.addWidget(QLabel("Số phiếu khám"), 2, 4); grid_bn.addWidget(self.sophieukham, 2, 5)
+        grid_bn.addWidget(QLabel("Người lập phiếu"), 2, 6); grid_bn.addWidget(self.nguoilapphieu, 2, 7)
 
-        # --- Hàng 4 ---
-        grid_bn.addWidget(QLabel("Chẩn đoán"), 3, 0)
-        grid_bn.addWidget(self.chandoan, 3, 1, 1, 3)
-        grid_bn.addWidget(QLabel("Ngày kê đơn"), 3, 4)
-        grid_bn.addWidget(self.ngaykedon, 3, 5)
-        grid_bn.addWidget(QLabel("Đơn mẫu"), 3, 6)
-        # Place combobox and template buttons together in a container widget
-        tmp_container = QWidget()
-        tmp_h = QHBoxLayout()
-        tmp_h.setContentsMargins(0, 0, 0, 0)
-        tmp_h.setSpacing(4)
-        tmp_h.addWidget(self.donmau)
-        tmp_h.addWidget(self.btn_save_template)
-        tmp_h.addWidget(self.btn_delete_template)
+        grid_bn.addWidget(QLabel("Chẩn đoán"), 3, 0); grid_bn.addWidget(self.chandoan, 3, 1, 1, 3)
+        grid_bn.addWidget(QLabel("Ngày kê đơn"), 3, 4); grid_bn.addWidget(self.ngaykedon, 3, 5)
+        
+        tmp_container = QWidget(); tmp_h = QHBoxLayout(); tmp_h.setContentsMargins(0, 0, 0, 0); tmp_h.setSpacing(4)
+        tmp_h.addWidget(self.donmau); tmp_h.addWidget(self.btn_save_template); tmp_h.addWidget(self.btn_delete_template)
         tmp_container.setLayout(tmp_h)
-        grid_bn.addWidget(tmp_container, 3, 7)
+        grid_bn.addWidget(QLabel("Đơn mẫu"), 3, 6); grid_bn.addWidget(tmp_container, 3, 7)
 
-        # --- Hàng 5 ---
-        grid_bn.addWidget(QLabel("Dị ứng thuốc"), 4, 0)
-        grid_bn.addWidget(self.diungthuoc, 4, 1, 1, 3)
-        grid_bn.addWidget(QLabel("Đối tượng"), 4, 4)
-        grid_bn.addWidget(self.doituong, 4, 5)
-        grid_bn.addWidget(QLabel("Đơn cũ"), 4, 6)
-        grid_bn.addWidget(self.doncu, 4, 7)
+        grid_bn.addWidget(QLabel("Dị ứng thuốc"), 4, 0); grid_bn.addWidget(self.diungthuoc, 4, 1, 1, 3)
+        grid_bn.addWidget(QLabel("Đối tượng"), 4, 4); grid_bn.addWidget(self.doituong, 4, 5)
+        grid_bn.addWidget(QLabel("Đơn cũ"), 4, 6); grid_bn.addWidget(self.doncu, 4, 7)
 
-        # --- Hàng 6 ---
-        grid_bn.addWidget(QLabel("Số ngày"), 5, 0)
-        grid_bn.addWidget(self.songay, 5, 1)
-        grid_bn.addWidget(QLabel("Hẹn tái khám"), 5, 2)
-        grid_bn.addWidget(self.taikham, 5, 3)
-        grid_bn.addWidget(QLabel("Tổng tiền"), 5, 4)
-        grid_bn.addWidget(self.tongtien, 5, 5)
-        grid_bn.addWidget(QLabel("Loại đơn"), 5, 6)
-        grid_bn.addWidget(self.loaithuoc, 5, 7)
+        grid_bn.addWidget(QLabel("Số ngày"), 5, 0); grid_bn.addWidget(self.songay, 5, 1)
+        grid_bn.addWidget(QLabel("Hẹn tái khám"), 5, 2); grid_bn.addWidget(self.taikham, 5, 3)
+        grid_bn.addWidget(QLabel("Tổng tiền"), 5, 4); grid_bn.addWidget(self.tongtien, 5, 5)
+        grid_bn.addWidget(QLabel("Loại đơn"), 5, 6); grid_bn.addWidget(self.loaithuoc, 5, 7)
 
         group_bn.setLayout(grid_bn)
         self.main_layout.addWidget(group_bn)
 
         # ======== BẢNG THUỐC ========
-        # Bỏ cột STT; các cột sẽ là: Mã thuốc, Tên thuốc, Số lượng, Đơn vị, Sáng, Trưa, Chiều, Tối, Liều dùng, Ghi chú
         group_danhmuc = QGroupBox("DANH MỤC THUỐC")
         group_danhmuc.setStyleSheet("QGroupBox { font-weight: bold; color: #0078D7; }")
-        vbox_danhmuc = QVBoxLayout()
-        vbox_danhmuc.setSpacing(4)
-        vbox_danhmuc.setContentsMargins(6, 6, 6, 6)
+        vbox_danhmuc = QVBoxLayout(); vbox_danhmuc.setSpacing(4); vbox_danhmuc.setContentsMargins(6, 6, 6, 6)
+        
         self.table_thuoc = QTableWidget(5, 10)
-        self.table_thuoc.setHorizontalHeaderLabels([
-            "Mã thuốc", "Tên thuốc", "Số lượng", "Đơn vị",
-            "Sáng", "Trưa", "Chiều", "Tối", "Liều dùng", "Ghi chú"
-        ])
-        # Thêm placeholder "Nhấn để chọn" cho các cột tương tác
+        self.table_thuoc.setHorizontalHeaderLabels(["Mã thuốc", "Tên thuốc", "Số lượng", "Đơn vị", "Sáng", "Trưa", "Chiều", "Tối", "Liều dùng", "Ghi chú"])
+        
         for row in range(5):
-            ma_thuoc = QTableWidgetItem("Nhấn để chọn")
-            ten_thuoc = QTableWidgetItem("Nhấn để chọn")
-            lieu_dung = QTableWidgetItem("Nhấn để chọn")
-            ghi_chu = QTableWidgetItem("Nhấn để chọn")
-            ma_thuoc.setForeground(Qt.gray)
-            ten_thuoc.setForeground(Qt.gray)
-            lieu_dung.setForeground(Qt.gray)
-            ghi_chu.setForeground(Qt.gray)
-            self.table_thuoc.setItem(row, 0, ma_thuoc)
-            self.table_thuoc.setItem(row, 1, ten_thuoc)
-            # Unit combo for column 3 (arrow-only until a choice is made)
-            unit_combo = self._make_unit_combo()
-            self.table_thuoc.setCellWidget(row, 3, unit_combo)
-            self.table_thuoc.setItem(row, 8, lieu_dung)
-            self.table_thuoc.setItem(row, 9, ghi_chu)
-        # Kết nối sự kiện để tự động thêm hàng khi người dùng nhập vào hàng cuối
+            self._init_table_row(self.table_thuoc, row)
+
         self.table_thuoc.itemChanged.connect(self.on_table_thuoc_item_changed)
         header = self.table_thuoc.horizontalHeader()
-        # Configure column resize modes so the layout is responsive when zooming/resizing
-        # Tên thuốc (1), Liều dùng (8) và Ghi chú (9) sẽ giãn để chiếm không gian chính
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(8, QHeaderView.Stretch)
         header.setSectionResizeMode(9, QHeaderView.Stretch)
-        # Thu nhỏ các cột chỉ cần một số (Sáng->Tối)
-        narrow_cols = [4, 5, 6, 7]  # chỉ số cột bắt đầu từ 0
-        for c in narrow_cols:
+        for c in [4, 5, 6, 7]:
             header.setSectionResizeMode(c, QHeaderView.Fixed)
             self.table_thuoc.setColumnWidth(c, 60)
-        # Mã thuốc hơi nhỏ hơn tên thuốc
-        header.setSectionResizeMode(0, QHeaderView.Fixed)
-        self.table_thuoc.setColumnWidth(0, 100)
-        # Kéo rộng cột Số lượng và Đơn vị (fixed but wider)
-        header.setSectionResizeMode(2, QHeaderView.Fixed)
-        self.table_thuoc.setColumnWidth(2, 110)
-        header.setSectionResizeMode(3, QHeaderView.Fixed)
-        self.table_thuoc.setColumnWidth(3, 140)
-
-        # Make table expand horizontally but keep vertical size fixed to the calculated
-        # maximum so it doesn't push content down when zooming.
-        self.table_thuoc.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        # Keep cell double-click behavior
+        
         self.table_thuoc.cellDoubleClicked.connect(self.handle_cell_double_click)
-
-        # Put the main medicines table inside the GroupBox's layout so it's visually grouped
         vbox_danhmuc.addWidget(self.table_thuoc)
         group_danhmuc.setLayout(vbox_danhmuc)
         self.main_layout.addWidget(group_danhmuc)
@@ -484,261 +342,103 @@ class KeDonThuoc(QWidget):
         # ======== THUỐC KHÁC ========
         group_khac = QGroupBox("THUỐC KHÁC")
         group_khac.setStyleSheet("QGroupBox { font-weight: bold; color: #0078D7; }")
-        vbox_khac = QVBoxLayout()
-        vbox_khac.setSpacing(4)
-        vbox_khac.setContentsMargins(6, 6, 6, 6)
+        vbox_khac = QVBoxLayout(); vbox_khac.setSpacing(4); vbox_khac.setContentsMargins(6, 6, 6, 6)
 
-        # Bảng thuốc khác (4 cột: Tên, Số lượng, Đơn vị, Liều dùng)
         self.table_thuoc_khac = QTableWidget(3, 4)
-        self.table_thuoc_khac.setHorizontalHeaderLabels([
-            "Tên thuốc ngoài", "Số lượng", "Đơn vị", "Liều dùng"
-        ])
-        # First column (Tên thuốc ngoài) should take available width, others fixed
+        self.table_thuoc_khac.setHorizontalHeaderLabels(["Tên thuốc ngoài", "Số lượng", "Đơn vị", "Liều dùng"])
         self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        # Thêm placeholder cho bảng thuốc khác
+        self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        
         for r in range(self.table_thuoc_khac.rowCount()):
-            name = QTableWidgetItem("")
-            qty = QTableWidgetItem("")
-            unit = QTableWidgetItem("")
-            dose = QTableWidgetItem("Nhấn để chọn")
-            dose.setForeground(Qt.gray)
-            # Unit combo for thuốc khác col 2 (arrow-only until a choice is made)
-            unit_combo = self._make_unit_combo()
-            self.table_thuoc_khac.setItem(r, 0, name)
-            self.table_thuoc_khac.setItem(r, 1, qty)
-            self.table_thuoc_khac.setCellWidget(r, 2, unit_combo)
-            self.table_thuoc_khac.setItem(r, 3, dose)
-        # Kết nối sự kiện để tự động thêm hàng khi người dùng nhập vào hàng cuối của bảng thuốc khác
+            self._init_table_khac_row(r)
+            
         self.table_thuoc_khac.itemChanged.connect(self.on_table_thuoc_khac_item_changed)
-        # Kết nối double click để mở dialog liều dùng cho thuốc khác
         self.table_thuoc_khac.cellDoubleClicked.connect(self.handle_table_thuoc_khac_double_clicked)
-
         vbox_khac.addWidget(self.table_thuoc_khac)
         group_khac.setLayout(vbox_khac)
         self.main_layout.addWidget(group_khac)
 
-        # Adjust column widths for THUỐC KHÁC table
-        # Make "Tên thuốc ngoài" column shorter and fixed width
-        self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
-        self.table_thuoc_khac.setColumnWidth(0, 350)
-        
-        # Keep "Số lượng" and "Đơn vị" the same
-        self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
-        self.table_thuoc_khac.setColumnWidth(1, 110)
-        self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
-        self.table_thuoc_khac.setColumnWidth(2, 140)
-        
-        # Make "Liều dùng" column stretch to take remaining space
-        self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        # Set size policy so the thuốc khác table won't expand vertically and create a
-        # large gap before 'LỜI DẶN'. Vertical size is fixed; horizontal expands.
-        self.table_thuoc_khac.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        # We'll adjust both tables' maximum heights to show N visible rows in a responsive
-        # way by recalculating sizes on resize. Call adjustment once now after creation.
-        try:
-            self.adjust_table_heights()
-        except Exception:
-            pass
-
-
         # ======== LỜI DẶN ========
         self.main_layout.addWidget(QLabel("LỜI DẶN"))
         self.loidan = QTextEdit()
+        self.loidan.setMaximumHeight(70)
         self.main_layout.addWidget(self.loidan)
-        # Make the 'LỜI DẶN' box smaller so it doesn't take too much space
-        try:
-            self.loidan.setMaximumHeight(70)
-            self.loidan.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        except Exception:
-            pass
 
-        # ======== NÚT CHỨC NĂNG ========
+        # ======== BUTTONS ========
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(6)
-        btn_layout.setContentsMargins(2, 2, 2, 2)
+        left_btn = QHBoxLayout()
+        
+        self.btn_nhapmoi = QPushButton("Nhập mới (F1)"); self.btn_nhapmoi.clicked.connect(self.on_nhapmoi)
+        self._style_button(self.btn_nhapmoi)
+        left_btn.addWidget(self.btn_nhapmoi)
 
-        # Left-aligned buttons
-        left_btn_layout = QHBoxLayout()
-        self.btn_nhapmoi = QPushButton("Nhập mới (F1)")
-        self.btn_nhapmoi.setMinimumWidth(100)
-        self.btn_nhapmoi.clicked.connect(self.on_nhapmoi)
-        try:
-            self._style_button(self.btn_nhapmoi, primary=True)
-        except Exception:
-            pass
-        left_btn_layout.addWidget(self.btn_nhapmoi)
+        self.btn_luu = QPushButton("Lưu (F2)"); self.btn_luu.clicked.connect(self.on_luu)
+        self._style_button(self.btn_luu)
+        left_btn.addWidget(self.btn_luu)
 
-        self.btn_luu = QPushButton("Lưu (F2)")
-        self.btn_luu.setMinimumWidth(100)
-        self.btn_luu.clicked.connect(self.on_luu)
-        try:
-            self._style_button(self.btn_luu, primary=True)
-        except Exception:
-            pass
-        left_btn_layout.addWidget(self.btn_luu)
+        self.btn_sua = QPushButton("Sửa"); self.btn_sua.clicked.connect(self.on_sua)
+        self._style_button(self.btn_sua)
+        left_btn.addWidget(self.btn_sua)
 
-        self.btn_sua = QPushButton("Sửa")
-        self.btn_sua.setMinimumWidth(100)
-        self.btn_sua.clicked.connect(self.on_sua)
-        try:
-            self._style_button(self.btn_sua, primary=True)
-        except Exception:
-            pass
-        left_btn_layout.addWidget(self.btn_sua)
+        self.btn_xoa = QPushButton("Xóa"); self.btn_xoa.clicked.connect(self.on_xoa)
+        self._style_button(self.btn_xoa)
+        left_btn.addWidget(self.btn_xoa)
 
-        self.btn_xoa = QPushButton("Xóa")
-        self.btn_xoa.setMinimumWidth(100)
-        self.btn_xoa.clicked.connect(self.on_xoa)
-        try:
-            self._style_button(self.btn_xoa, primary=True)
-        except Exception:
-            pass
-        left_btn_layout.addWidget(self.btn_xoa)
+        btn_layout.addLayout(left_btn)
+        btn_layout.addStretch()
 
-        btn_layout.addLayout(left_btn_layout)
-        btn_layout.addStretch()  # Add space between left and right buttons
+        right_btn = QHBoxLayout()
+        self.btn_in_don = QPushButton("In đơn"); self.btn_in_don.clicked.connect(self.on_in_don)
+        self._style_button(self.btn_in_don)
+        right_btn.addWidget(self.btn_in_don)
 
-        # Right-aligned buttons
-        right_btn_layout = QHBoxLayout()
-        self.btn_in_don = QPushButton("In đơn")
-        self.btn_in_don.setMinimumWidth(100)
-        self.btn_in_don.clicked.connect(self.on_in_don)
-        try:
-            self._style_button(self.btn_in_don, primary=True)
-        except Exception:
-            pass
-        right_btn_layout.addWidget(self.btn_in_don)
+        self.btn_xuat_thuoc = QPushButton("Xuất thuốc"); self.btn_xuat_thuoc.clicked.connect(self.on_xuat_thuoc)
+        self._style_button(self.btn_xuat_thuoc)
+        right_btn.addWidget(self.btn_xuat_thuoc)
 
-        self.btn_xuat_thuoc = QPushButton("Xuất thuốc")
-        self.btn_xuat_thuoc.setMinimumWidth(100)
-        self.btn_xuat_thuoc.clicked.connect(self.on_xuat_thuoc)
-        try:
-            self._style_button(self.btn_xuat_thuoc, primary=True)
-        except Exception:
-            pass
-        right_btn_layout.addWidget(self.btn_xuat_thuoc)
+        self.btn_thoat = QPushButton("Thoát"); self.btn_thoat.clicked.connect(self.on_thoat)
+        self._style_button(self.btn_thoat, False)
+        right_btn.addWidget(self.btn_thoat)
 
-        self.btn_thoat = QPushButton("Thoát")
-        self.btn_thoat.setMinimumWidth(100)
-        self.btn_thoat.clicked.connect(self.on_thoat)
-        try:
-            self._style_button(self.btn_thoat, primary=False)
-        except Exception:
-            pass
-        right_btn_layout.addWidget(self.btn_thoat)
-
-        btn_layout.addLayout(right_btn_layout)
+        btn_layout.addLayout(right_btn)
         self.main_layout.addLayout(btn_layout)
 
         self.setLayout(self.main_layout)
 
+    def _init_table_row(self, table, row):
+        ma = QTableWidgetItem("Nhấn để chọn"); ma.setForeground(Qt.gray)
+        ten = QTableWidgetItem("Nhấn để chọn"); ten.setForeground(Qt.gray)
+        lieu = QTableWidgetItem("Nhấn để chọn"); lieu.setForeground(Qt.gray)
+        ghi = QTableWidgetItem("Nhấn để chọn"); ghi.setForeground(Qt.gray)
+        
+        table.setItem(row, 0, ma); table.setItem(row, 1, ten)
+        table.setCellWidget(row, 3, self._make_unit_combo())
+        table.setItem(row, 8, lieu); table.setItem(row, 9, ghi)
+
+    def _init_table_khac_row(self, r):
+        self.table_thuoc_khac.setItem(r, 0, QTableWidgetItem(""))
+        self.table_thuoc_khac.setItem(r, 1, QTableWidgetItem(""))
+        self.table_thuoc_khac.setCellWidget(r, 2, self._make_unit_combo())
+        dose = QTableWidgetItem("Nhấn để chọn"); dose.setForeground(Qt.gray)
+        self.table_thuoc_khac.setItem(r, 3, dose)
+
     def _make_unit_combo(self, initial_value=None):
-        """Create a unit QComboBox that hides its text until the user picks or types one.
-
-        initial_value: optional string to pre-select or pre-fill the combo.
-        """
-        unit_options = ["viên", "lọ", "chai", "ống", "gói", "tuýp", "tuýp nhỏ", "ống nhỏ"]
         combo = QComboBox()
-        combo.addItems(unit_options)
+        combo.addItems(["viên", "lọ", "chai", "ống", "gói", "tuýp", "tuýp nhỏ", "ống nhỏ"])
         combo.setEditable(True)
-        # Always clear the text initially
         combo.setCurrentIndex(-1)
-        combo.clearEditText()
-
-        # Hide the line edit text until user enters/selects something
-        le = combo.lineEdit()
-        le.setStyleSheet("color: rgba(0,0,0,0);")
-        le.clear()  # ensure text is cleared
-
-        def reveal_if_not_empty(txt):
-            if txt and str(txt).strip():
-                try:
-                    le.setStyleSheet("color: black;")
-                except Exception:
-                    pass
-            else:
-                try:
-                    le.setStyleSheet("color: rgba(0,0,0,0);")
-                except Exception:
-                    pass
-
-        # When the current text or the lineedit changes, reveal the text if non-empty
-        combo.currentTextChanged.connect(reveal_if_not_empty)
-        le.textChanged.connect(reveal_if_not_empty)
-
-        # If an initial value is provided AND it's not empty, select or set it and reveal
-        if initial_value and str(initial_value).strip():
-            if initial_value in unit_options:
-                combo.setCurrentIndex(unit_options.index(initial_value))
-            else:
-                combo.setCurrentText(str(initial_value))
-            try:
-                le.setStyleSheet("color: black;")
-            except Exception:
-                pass
-        else:
-            # No initial value or empty - ensure combo is cleared
-            combo.setCurrentIndex(-1)
-            combo.clearEditText()
-            le.clear()
-            try:
-                le.setStyleSheet("color: rgba(0,0,0,0);")
-            except Exception:
-                pass
-
+        if initial_value:
+            combo.setCurrentText(str(initial_value))
         return combo
 
     def _style_button(self, btn, primary=True):
-        """Apply consistent flat/tab-like styling to buttons.
-
-        primary: if True use stronger blue; otherwise use a lighter outline style.
-        """
         if primary:
-            style = (
-                "QPushButton {"
-                "background-color: #0078D7;"
-                "color: white;"
-                "border: 1px solid #0078D7;"
-                "border-radius: 4px;"
-                "padding: 6px 12px;"
-                "}"
-                "QPushButton:hover {"
-                "background-color: #005a9e;"
-                "color: white;"
-                "}"
-                "QPushButton:pressed {"
-                "background-color: #004a87;"
-                "}"
-                "QPushButton:disabled {"
-                "background-color: #d6e6fb;"
-                "color: #9aaecf;"
-                "}"
-            )
+            style = "QPushButton { background-color: #0078D7; color: white; border: 1px solid #0078D7; border-radius: 4px; padding: 6px 12px; } QPushButton:hover { background-color: #005a9e; }"
         else:
-            style = (
-                "QPushButton {"
-                "background-color: transparent;"
-                "color: #0078D7;"
-                "border: 1px solid #0078D7;"
-                "border-radius: 4px;"
-                "padding: 4px 10px;"
-                "}"
-                "QPushButton:hover {"
-                "background-color: #e6f0fb;"
-                "color: #005a9e;"
-                "}"
-                "QPushButton:pressed {"
-                "background-color: #cfe6fb;"
-                "}"
-            )
-        try:
-            btn.setStyleSheet(style)
-            # keep text visible on hover by ensuring color rules are set above
-            btn.setCursor(Qt.PointingHandCursor)
-        except Exception:
-            pass
-
+            style = "QPushButton { background-color: transparent; color: #0078D7; border: 1px solid #0078D7; border-radius: 4px; padding: 4px 10px; } QPushButton:hover { background-color: #e6f0fb; }"
+        btn.setStyleSheet(style)
+        btn.setCursor(Qt.PointingHandCursor)
+        
     def handle_cell_double_click(self, row, col):
         # Open drug chooser when user double-clicks on Mã thuốc (col 0) or Tên thuốc (col 1)
         if col in (0, 1):

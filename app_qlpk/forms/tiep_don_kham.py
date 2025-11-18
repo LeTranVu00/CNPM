@@ -1,34 +1,61 @@
+import sys
+import os
+
+# --- FIX: Cấu hình đường dẫn để tìm thấy module ở thư mục cha ---
+# Lấy đường dẫn tuyệt đối của file hiện tại: .../app_qlpk/forms/tiep_don_kham.py
+current_file_path = os.path.abspath(__file__)
+# Lấy thư mục chứa file này: .../app_qlpk/forms
+current_dir = os.path.dirname(current_file_path)
+# Lấy thư mục cha (root project): .../app_qlpk
+parent_dir = os.path.dirname(current_dir)
+
+# Thêm thư mục cha vào đầu danh sách tìm kiếm module
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+# --- FIX: Import module an toàn ---
+try:
+    from database import get_connection, initialize_database
+    from app_signals import app_signals
+except ImportError as e:
+    print(f"❌ Lỗi Import module từ thư mục cha: {e}")
+    print(f"ℹ️  Đường dẫn hiện tại: {sys.path[0]}")
+    # Fallback giả lập để IDE không báo lỗi đỏ lòm khi chưa chạy
+    get_connection = lambda: None
+    initialize_database = lambda: None
+    app_signals = None
+
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDateEdit,
     QTableWidget, QPushButton, QVBoxLayout, QHBoxLayout,
     QGridLayout, QGroupBox, QSplitter, QHeaderView, QCompleter,
     QTableWidgetItem, QMessageBox, QAbstractItemView
 )
+
 # PDF generation
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-import os
 
 # Đăng ký font tiếng Việt
-font_path = os.path.join(os.path.dirname(__file__), "fonts", "arial.ttf")
+# Tìm file font ở thư mục cha/fonts
+font_path = os.path.join(parent_dir, "fonts", "arial.ttf")
 try:
-    # Đăng ký nếu file font tồn tại — tránh crash khi import module nếu thiếu font
     if os.path.exists(font_path):
         pdfmetrics.registerFont(TTFont("ArialUnicode", font_path))
     else:
-        print(f"⚠️ Font không tìm thấy, sẽ bỏ qua đăng ký font: {font_path}")
+        print(f"⚠️ Không tìm thấy font tại: {font_path}")
 except Exception as _e:
-    # Nếu có lỗi khi đăng ký font thì log và tiếp tục — không nên làm crash toàn app
     print(f"⚠️ Lỗi khi đăng ký font ArialUnicode: {_e}")
 
 from PyQt5.QtCore import Qt, QDate, QStringListModel
 from PyQt5.QtGui import QFont
-from database import get_connection, initialize_database
-from signals import app_signals
-initialize_database()
+
+# Khởi tạo DB (chỉ chạy nếu import thành công)
+if callable(initialize_database):
+    initialize_database()
 
 class TiepDonKham(QWidget):
     def __init__(self, role=None):
@@ -1201,17 +1228,13 @@ class TiepDonKham(QWidget):
     # ---------------------------
     def in_phieu_tiep_don(self):
         try:
-            # Giả sử đoạn code của bạn phía trên đã tạo file PDF sẵn (ví dụ HS001.pdf)
-            file_path = self.tao_file_pdf_tiepdon()  # Hàm này bạn đang dùng để sinh PDF
-
-            # Mở cửa sổ xem PDF ngay trong app
-            from forms.pdf_viewer import PDFViewer
+            file_path = self.tao_file_pdf_tiepdon()
+            # SỬA: Dùng dấu chấm . để import file cùng thư mục
+            from .pdf_viewer import PDFViewer 
             self.pdf_window = PDFViewer(file_path)
             self.pdf_window.show()
-
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể mở file PDF:\n{e}")
-
     def tao_file_pdf_tiepdon(self):
         """
         Sinh file PDF cho hồ sơ tiếp đón.
@@ -1304,7 +1327,8 @@ class TiepDonKham(QWidget):
     def in_so_thu_tu(self):
         try:
             file_path = self.tao_file_stt_pdf()
-            from forms.pdf_viewer import PDFViewer
+            # SỬA: Dùng dấu chấm . để import file cùng thư mục
+            from .pdf_viewer import PDFViewer
             self.pdf_window = PDFViewer(file_path)
             self.pdf_window.show()
         except Exception as e:
@@ -1709,11 +1733,15 @@ class TiepDonKham(QWidget):
 
     def load_thongke_luot_tiepdon(self):
         """Load thống kê lượt tiếp đón từ DB, chỉ lấy thống kê của ngày hiện tại"""
-        from database import get_connection
-        import datetime
+        # SỬA: Xóa dòng 'from database import get_connection' ở đây đi.
+        # Nó đã có ở đầu file rồi.
+        import datetime 
         
         today = datetime.date.today().strftime("%Y-%m-%d")
+        
+        # Gọi hàm đã import ở đầu file
         conn = get_connection()
+        if not conn: return
         cur = conn.cursor()
 
         # Chỉ lấy thống kê của ngày hiện tại

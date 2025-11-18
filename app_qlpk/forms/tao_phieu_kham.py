@@ -1,3 +1,8 @@
+import sys
+import os
+import logging
+from functools import partial
+
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QLineEdit,
     QPushButton, QDateEdit, QDateTimeEdit, QMessageBox, QGroupBox, QGridLayout, QTextEdit,
@@ -6,10 +11,19 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate, Qt
 from PyQt5.QtGui import QFont
-import sys
-from database import get_connection
-from functools import partial
-import logging
+
+# --- SỬA LỖI IMPORT: DATABASE ---
+# Lấy đường dẫn thư mục cha (app_qlpk) và thêm vào sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+try:
+    from database import get_connection
+except ImportError:
+    # Fallback để tránh lỗi IDE báo đỏ (thực tế khi chạy từ main.py sẽ không lỗi)
+    get_connection = None
 
 # Module logger
 logger = logging.getLogger(__name__)
