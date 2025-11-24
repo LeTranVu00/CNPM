@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### UiPath template
 # gitignore template for RPA development using UiPath Studio
 # website: https://www.uipath.com/product/studio
@@ -7362,3 +7363,6 @@ tags
 result
 result-*
 
+=======
+.env
+>>>>>>> master
