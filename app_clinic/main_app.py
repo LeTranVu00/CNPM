@@ -139,11 +139,13 @@ class MainApp(QMainWindow):
         self.btn_chidinh = QPushButton("Chỉ định dịch vụ")
         self.btn_lapphieu = QPushButton("Lập phiếu khám")
         self.btn_quanly_thuoc = QPushButton("Quản lý thuốc")
+        
 
         # Hiển thị nút dựa trên role
         # Tiếp tân, Bác sĩ, Admin đều có nút Tiếp đón khám
         sidebar_layout.addWidget(self.btn_tiepdon)
-        
+        self.btn_quanly_dat_lich = QPushButton("Quản lý đặt lịch")
+        sidebar_layout.addWidget(self.btn_quanly_dat_lich)
         # Bác sĩ và Admin có nút Chỉ định dịch vụ và Lập phiếu khám
         if self.role in ['bac_si', 'admin']:
             sidebar_layout.addWidget(self.btn_chidinh)
@@ -155,9 +157,6 @@ class MainApp(QMainWindow):
             # Admin panel (patient/session management)
             self.btn_admin_panel = QPushButton("Quản lý chung")
             sidebar_layout.addWidget(self.btn_admin_panel)
-            # Thêm nút Quản lý đặt lịch
-            self.btn_quanly_dat_lich = QPushButton("Quản lý đặt lịch")
-            sidebar_layout.addWidget(self.btn_quanly_dat_lich)
 
         sidebar_layout.addSpacing(10)
         title2 = QLabel("THU TIỀN - BÁO CÁO")
