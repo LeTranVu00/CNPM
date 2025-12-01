@@ -77,14 +77,14 @@ class TiepDonKham(QWidget):
         cur.execute("SELECT ho_ten FROM benh_nhan ORDER BY ho_ten")
         names = [row[0] for row in cur.fetchall()]
         conn.close()
-    
+
         # Gắn danh sách vào combobox và completer
         self.hoten.clear()
         self.hoten.addItems(names)
-    
+
         model = QStringListModel(names)
         self.completer.setModel(model)
-    
+
     def update_age(self):
         today = QDate.currentDate()
         birth = self.ngaysinh.date()
@@ -684,13 +684,13 @@ class TiepDonKham(QWidget):
     # ---------------------------
     def validate_numeric_fields(self):
         """Kiểm tra xem các trường nhập chữ số có hợp lệ không.
-        
+
         Trả về: (is_valid, error_message)
         - is_valid: True nếu tất cả hợp lệ, False nếu có lỗi
         - error_message: Thông báo lỗi (nếu có)
         """
         errors = []
-        
+
         # Các trường cần kiểm tra (không bắt buộc nhập nhưng nếu nhập phải là số)
         fields_to_check = {
             "nhịp thở (nhip_tho)": self.nhiptho,
@@ -700,7 +700,7 @@ class TiepDonKham(QWidget):
             "cân nặng (can_nang)": self.cannang,
             "huyết áp (huyet_ap)": self.huyetap,
         }
-        
+
         for field_name, widget in fields_to_check.items():
             text = widget.text().strip() if hasattr(widget, "text") else ""
             if text:  # Nếu trường có dữ liệu thì kiểm tra
@@ -708,11 +708,11 @@ class TiepDonKham(QWidget):
                     float(text)  # Cố gắng chuyển thành số
                 except ValueError:
                     errors.append(f"  • {field_name}: '{text}' không phải là số hợp lệ")
-        
+
         if errors:
             error_msg = "❌ Các trường sau không hợp lệ (phải nhập chữ số):\n" + "\n".join(errors)
             return False, error_msg
-        
+
         return True, ""
 
     # ---------------------------
@@ -725,7 +725,7 @@ class TiepDonKham(QWidget):
         if not is_valid:
             QMessageBox.warning(self, "Lỗi dữ liệu", error_msg)
             return None
-        
+
         try:
             conn = get_connection()
             data_bn, data_td = self.collect_form_data()
@@ -778,7 +778,7 @@ class TiepDonKham(QWidget):
                 widget.setReadOnly(not editable)
             elif isinstance(widget, (QComboBox, QDateEdit)):
                 widget.setEnabled(editable)
-        
+
         # Không thay đổi trạng thái enabled của các nút ở đây — giữ luôn có thể bấm được
         # (Vẫn có thể bật/tắt nút ở các chỗ cụ thể nếu cần, nhưng mặc định ta sẽ giữ enable.)
         try:
@@ -786,7 +786,7 @@ class TiepDonKham(QWidget):
                 btn.setEnabled(True)
         except Exception:
             pass
-        
+
         # Đặt stylesheet cho các widget dựa trên trạng thái
         style_readonly = """
             QLineEdit:read-only {
@@ -840,10 +840,10 @@ class TiepDonKham(QWidget):
             # Reset edit mode và selected record
             self.is_edit_mode = False
             self.selected_ma_hoso = None
-            
+
             # Mở khóa form để nhập mới
             self.set_form_editable(True)
-            
+
             # 🚫 Ngắt signal để không tự load dữ liệu cũ
             try:
                 self.hoten.blockSignals(True)
@@ -931,7 +931,7 @@ class TiepDonKham(QWidget):
         """
         if not ma_hoso:
             return
-            
+
         # Khóa form trước khi load dữ liệu
         self.set_form_editable(False)
         conn = get_connection()
@@ -1368,11 +1368,11 @@ class TiepDonKham(QWidget):
         # === Cấu trúc phiếu STT ===
         PAGE_WIDTH = 300
         PAGE_CENTER = PAGE_WIDTH // 2
-        
+
         # --- Tiêu đề ---
         c.setFont("ArialUnicode", 16)
         c.drawCentredString(PAGE_CENTER, 400, "PHIẾU SỐ THỨ TỰ")
-        
+
         # --- Thông tin ngày ---
         c.setFont("ArialUnicode", 11)
         c.drawCentredString(PAGE_CENTER, 380, f"Ngày {ngay}")
@@ -1396,7 +1396,7 @@ class TiepDonKham(QWidget):
         # Kẻ đường ngang phân cách
         y -= 15
         c.line(30, y, PAGE_WIDTH-30, y)
-        
+
         # Thông tin phòng và bác sĩ
         y -= 20
         c.setFont("ArialUnicode", 11)
@@ -1415,7 +1415,7 @@ class TiepDonKham(QWidget):
         c.setFont("ArialUnicode", 10)
         c.drawCentredString(PAGE_CENTER, y, "Vui lòng chờ đến lượt theo số thứ tự được gọi")
         c.drawCentredString(PAGE_CENTER, y-15, "(Phiếu chỉ có giá trị trong ngày)")
-        
+
         c.save()
         return file_path
 
@@ -1474,7 +1474,7 @@ class TiepDonKham(QWidget):
             self.btn_sua.setEnabled(True)  # Enable edit button
             self.btn_xoa.setEnabled(True)  # Enable delete button
 
-    
+
     # ---------------------------
     # Load dữ liệu bệnh nhân vào form (khi chọn từ combobox)
     # ---------------------------
@@ -1578,9 +1578,9 @@ class TiepDonKham(QWidget):
             print("❌ Lỗi khi load bệnh nhân:", e)
             traceback.print_exc()
 
-        
-        
-    
+
+
+
     # ---------------------------
     # Handlers for controlled loading from combobox/completer
     # ---------------------------
@@ -1657,11 +1657,11 @@ class TiepDonKham(QWidget):
         """Load danh sách tiếp đón với giới hạn số lượng bản ghi"""
         conn = get_connection()
         cur = conn.cursor()
-        
+
         # Lấy tổng số bản ghi để tính số trang
         cur.execute("SELECT COUNT(*) FROM tiep_don")
         total_records = cur.fetchone()[0]
-        
+
         # Chỉ lấy số lượng bản ghi theo limit, sắp xếp theo ngày mới nhất
         cur.execute("""
             SELECT td.ma_hoso, td.ngay_tiep_don, td.phong_kham, bn.ho_ten, td.bac_si_kham, td.tinh_trang
@@ -1695,10 +1695,10 @@ class TiepDonKham(QWidget):
         except Exception:
             # Nếu không thành công, fallback về resizeColumnsToContents
             self.tableTiepDon.resizeColumnsToContents()
-        
+
         # Thông báo số lượng bản ghi đang hiển thị
         if total_records > limit:
-            QMessageBox.information(self, "Thông báo", 
+            QMessageBox.information(self, "Thông báo",
                 f"Đang hiển thị {limit} bản ghi mới nhất trong tổng số {total_records} bản ghi.\n"
                 "Sử dụng chức năng tìm kiếm để xem thêm bản ghi cũ hơn.")
 
@@ -1730,7 +1730,7 @@ class TiepDonKham(QWidget):
         """Load thống kê lượt tiếp đón từ DB, chỉ lấy thống kê của ngày hiện tại"""
         from database import get_connection
         import datetime
-        
+
         today = datetime.date.today().strftime("%Y-%m-%d")
         conn = get_connection()
         cur = conn.cursor()
@@ -1757,17 +1757,17 @@ class TiepDonKham(QWidget):
             phong_kham, total_tiepdon, total_dakham = row
             row = self.table_thongke.rowCount()
             self.table_thongke.insertRow(row)
-            
+
             # Cột phòng khám
             item_phong = QTableWidgetItem(phong_kham or "")
             item_phong.setTextAlignment(Qt.AlignCenter)
             self.table_thongke.setItem(row, 0, item_phong)
-            
+
             # Cột số lượng tiếp đón
             item_tiepdon = QTableWidgetItem(str(total_tiepdon))
             item_tiepdon.setTextAlignment(Qt.AlignCenter)
             self.table_thongke.setItem(row, 1, item_tiepdon)
-            
+
             # Cột số lượng đã khám
             item_dakham = QTableWidgetItem(str(total_dakham))
             item_dakham.setTextAlignment(Qt.AlignCenter)

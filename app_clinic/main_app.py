@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from database import initialize_database
+
 initialize_database()
 
 from database import get_user_role, end_user_session
@@ -117,12 +118,12 @@ class MainApp(QMainWindow):
         user_info_label.setFont(QFont("Arial", 10, QFont.Bold))
         user_info_label.setStyleSheet("color: #1565c0; padding-left: 15px; padding-bottom: 5px;")
         sidebar_layout.addWidget(user_info_label)
-        
+
         role_label = QLabel(f"Vai trò: {self.role or 'user'}")
         role_label.setFont(QFont("Arial", 9))
         role_label.setStyleSheet("color: #666; padding-left: 15px; padding-bottom: 10px;")
         sidebar_layout.addWidget(role_label)
-        
+
         # Dòng phân cách
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
@@ -139,7 +140,6 @@ class MainApp(QMainWindow):
         self.btn_chidinh = QPushButton("Chỉ định dịch vụ")
         self.btn_lapphieu = QPushButton("Lập phiếu khám")
         self.btn_quanly_thuoc = QPushButton("Quản lý thuốc")
-        
 
         # Hiển thị nút dựa trên role
         # Tiếp tân, Bác sĩ, Admin đều có nút Tiếp đón khám
@@ -150,7 +150,7 @@ class MainApp(QMainWindow):
         if self.role in ['bac_si', 'admin']:
             sidebar_layout.addWidget(self.btn_chidinh)
             sidebar_layout.addWidget(self.btn_lapphieu)
-        
+
         # Chỉ Admin có nút Quản lý thuốc
         if self.role == 'admin':
             sidebar_layout.addWidget(self.btn_quanly_thuoc)
@@ -240,7 +240,7 @@ class MainApp(QMainWindow):
             self._set_sidebar_inactive(b)
 
         # Update active state when content changes (e.g., child form closes and returns to default)
-        self.content.currentChanged.connect(self._on_content_changed) 
+        self.content.currentChanged.connect(self._on_content_changed)
 
     def _set_sidebar_inactive(self, btn):
         """Set button to inactive (white background)."""
@@ -304,16 +304,16 @@ class MainApp(QMainWindow):
         if self.role not in ['bac_si', 'admin']:
             QMessageBox.warning(self, "Phân quyền", "Bạn không có quyền mở trang 'Chỉ định dịch vụ'.")
             return
-        chidinh_page = ChiDinhDichVu() # gọi class trong chi_dinh_dich_vu.py
+        chidinh_page = ChiDinhDichVu()  # gọi class trong chi_dinh_dich_vu.py
         self.content.addWidget(chidinh_page)
         self.content.setCurrentWidget(chidinh_page)
-        
+
         # Kết nối signal để cập nhật form quản lý khi lưu
         try:
             chidinh_page.data_saved.connect(lambda: self.refresh_quan_ly_form())
         except Exception:
             pass
-        
+
         try:
             self._activate_only(self.btn_chidinh)
         except Exception:
@@ -334,7 +334,7 @@ class MainApp(QMainWindow):
             except Exception:
                 pass
         except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
+            # ĐÃ XÓA IMPORT LOCAL Ở ĐÂY ĐỂ TRÁNH LỖI SCOPE
             QMessageBox.critical(self, "Lỗi", f"Không thể mở trang Lập phiếu khám:\n{e}")
 
     def show_quanly_thuoc_form(self):
@@ -357,7 +357,7 @@ class MainApp(QMainWindow):
             except Exception:
                 pass
         except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
+            # ĐÃ XÓA IMPORT LOCAL Ở ĐÂY ĐỂ TRÁNH LỖI SCOPE
             QMessageBox.critical(self, "Lỗi", f"Không thể mở trang Quản lý thuốc:\n{e}")
 
     def _get_or_create_quan_ly_thuoc(self):
@@ -370,7 +370,7 @@ class MainApp(QMainWindow):
             self.quan_ly_thuoc_page = page
             return page
         except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
+            # ĐÃ XÓA IMPORT LOCAL Ở ĐÂY ĐỂ TRÁNH LỖI SCOPE
             QMessageBox.critical(self, "Lỗi", f"Không thể tạo trang Quản lý thuốc:\n{e}")
             return None
 
@@ -409,7 +409,7 @@ class MainApp(QMainWindow):
                 pass
         except Exception:
             pass
-    
+
     def refresh_quan_ly_form(self):
         """Cập nhật dữ liệu trong form quản lý thuốc khi nhân liệu thay đổi."""
         try:
@@ -417,7 +417,7 @@ class MainApp(QMainWindow):
                 self.quan_ly_thuoc_page.on_data_updated()
         except Exception:
             pass
-    
+
     def create_don_thuoc_form(self, is_bo_sung=False):
         """Tạo form đơn thuốc (hoặc đơn bổ sung) và kết nối signal."""
         try:
@@ -439,7 +439,6 @@ class MainApp(QMainWindow):
             return page
         except Exception:
             return None
-
 
     def logout(self):
         # Record logout time for current session (if any)
@@ -497,6 +496,7 @@ if __name__ == "__main__":
     # Khởi tạo DB và hiển thị màn hình đăng nhập thay vì tự động đăng nhập admin
     initialize_database()
     from login import LoginWindow
+
     app = QApplication(sys.argv)
     app.setFont(QFont("Arial", 10))
     # Global stylesheet: ensure table row selection uses solid colors and text

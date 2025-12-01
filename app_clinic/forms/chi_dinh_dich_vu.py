@@ -1,45 +1,88 @@
+import sys
+import os
+import logging
+from datetime import datetime
+
+# ==============================================================================
+# BƯỚC 1: CẤU HÌNH ĐƯỜNG DẪN (ĐỂ FIX LỖI IMPORT DATABASE/SIGNALS)
+# ==============================================================================
+# Lấy đường dẫn thư mục hiện tại (forms)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Lấy đường dẫn thư mục gốc dự án (app_clinic)
+project_root = os.path.dirname(current_dir)
+# Thêm vào sys.path
+if project_root not in sys.path:
+    sys.path.append(project_root)
+# ==============================================================================
+
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QLineEdit, QComboBox, QPushButton, QVBoxLayout,
     QHBoxLayout, QGridLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QMessageBox, QSizePolicy, QSpacerItem,
-    QMessageBox, QDateEdit, QDialog, QTextEdit
+    QDateEdit, QDialog, QTextEdit
 )
-from PyQt5.QtCore import Qt, QDate, pyqtSignal
-from app_signals import app_signals
+from PyQt5.QtCore import Qt, QDate, pyqtSignal, QStringListModel
 from PyQt5.QtGui import QFont
+
+# --- IMPORT MODULE DỰ ÁN AN TOÀN ---
+try:
+    from database import get_connection, initialize_database
+
+    # Fix import signals
+    try:
+        from signals import app_signals
+    except ImportError:
+        from app_signals import app_signals
+except ImportError as e:
+    print(f"❌ Lỗi Import: {e}")
+
+# --- XỬ LÝ FONT (FIX LỖI KEYERROR 'NAME') ---
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from datetime import datetime
-import os
 
-# Đăng ký font tiếng Việt
-font_path = os.path.join(os.path.dirname(__file__), "fonts", "arial.ttf")
-pdfmetrics.registerFont(TTFont("ArialUnicode", font_path))
+# Tìm font chính xác trong thư mục forms/fonts/
+font_path = os.path.join(current_dir, "fonts", "arial.ttf")
+try:
+    if os.path.exists(font_path):
+        pdfmetrics.registerFont(TTFont("ArialUnicode", font_path))
+    else:
+        # Fallback thử tìm ở root
+        alt_path = os.path.join(project_root, "fonts", "arial.ttf")
+        if os.path.exists(alt_path):
+            pdfmetrics.registerFont(TTFont("ArialUnicode", alt_path))
+        else:
+            print(f"⚠️ Cảnh báo: Không tìm thấy font tại {font_path}")
+except Exception as e:
+    print(f"⚠️ Lỗi đăng ký font (sẽ dùng font mặc định): {e}")
 
-from PyQt5.QtCore import Qt, QDate, QStringListModel
-from PyQt5.QtGui import QFont
-from database import get_connection, initialize_database
-initialize_database()
-import logging
+# Khởi tạo DB
+try:
+    initialize_database()
+except Exception:
+    pass
 
-# Configure simple file logger for the form (one logger shared across module)
-LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app.log'))
+# Configure simple file logger for the form
+LOG_PATH = os.path.join(project_root, 'app.log')
 logger = logging.getLogger('app_qlpk')
 if not logger.handlers:
-    fh = logging.FileHandler(LOG_PATH, encoding='utf-8')
-    fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
-    fh.setFormatter(fmt)
-    logger.addHandler(fh)
-logger.setLevel(logging.INFO)
+    try:
+        fh = logging.FileHandler(LOG_PATH, encoding='utf-8')
+        fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+        fh.setFormatter(fmt)
+        logger.addHandler(fh)
+        logger.setLevel(logging.INFO)
+    except Exception:
+        pass
+
 
 class TextEditDialog(QDialog):
     def __init__(self, title, initial_text="", parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.resize(500, 400)
-        
+
         # Set stylesheet to match main window (buttons use green theme)
         self.setStyleSheet("""
             QDialog { background-color: white; }
@@ -48,26 +91,26 @@ class TextEditDialog(QDialog):
             QTextEdit { border: 1px solid #ccc; border-radius: 3px; padding: 4px; }
             QTextEdit:focus { border-color: #0078D7; }
         """)
-        
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-        
+
         # Text editor
         self.text_edit = QTextEdit()
         self.text_edit.setPlainText(initial_text)
         self.text_edit.setFont(QFont("Arial", 10))
         layout.addWidget(self.text_edit)
-        
+
         # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(6)
-        
+
         ok_btn = QPushButton("OK")
         ok_btn.clicked.connect(self.accept)
         cancel_btn = QPushButton("Hủy")
         cancel_btn.clicked.connect(self.reject)
-        
+
         btn_layout.addStretch()
         btn_layout.addWidget(ok_btn)
         btn_layout.addWidget(cancel_btn)
@@ -100,11 +143,11 @@ class ClickableLabel(QLabel):
 class ChiDinhDichVu(QWidget):
     # Signal để thông báo khi dữ liệu được lưu
     data_saved = pyqtSignal()
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_phieu_kham_id = None
-        
+
         # Set stylesheet (use green button style like reception form)
         self.base_stylesheet = """
             QGroupBox {
@@ -146,10 +189,10 @@ class ChiDinhDichVu(QWidget):
             }
         """
         self.setStyleSheet(self.base_stylesheet)
-        
+
         # UI setup
         self.initUI()
-        
+
         # Load initial data
         try:
             self.load_dich_vu_list()
@@ -159,7 +202,7 @@ class ChiDinhDichVu(QWidget):
             self.load_benh_nhan_list()
         except Exception:
             pass
-            
+
         # Connect signals
         self.hoten.currentIndexChanged.connect(self.on_select_benh_nhan)
 
@@ -238,7 +281,7 @@ class ChiDinhDichVu(QWidget):
         grid_bn.addWidget(QLabel("Số CCCD"), 0, 2)
         grid_bn.addWidget(self.socccd, 0, 3)
         grid_bn.addWidget(QLabel("Giới tính"), 0, 4)
-        grid_bn.addWidget(self.gioitinh, 0, 5) # Cột 3 (Input)
+        grid_bn.addWidget(self.gioitinh, 0, 5)  # Cột 3 (Input)
 
         # Hàng 1: Ngày sinh | Tuổi
         grid_bn.addWidget(QLabel("Ngày sinh"), 1, 0)
@@ -303,15 +346,15 @@ class ChiDinhDichVu(QWidget):
 
         # Hàng 9: Chẩn đoán
         grid_bn.addWidget(QLabel("Chẩn đoán ban đầu"), 8, 0)
-        grid_bn.addWidget(self.lbl_chandoanbandau, 8, 1, 1, 3) # Chiếm 3 cột
+        grid_bn.addWidget(self.lbl_chandoanbandau, 8, 1, 1, 3)  # Chiếm 3 cột
 
         # Ẩn các input gốc (vẫn giữ để lưu giá trị)
         self.khamlamsang.hide()
         self.chandoanbandau.hide()
 
         # Căn chỉnh cột Input
-        grid_bn.setColumnStretch(1, 1) # Cột Input 1 co giãn
-        grid_bn.setColumnStretch(3, 1) # Cột Input 2 co giãn
+        grid_bn.setColumnStretch(1, 1)  # Cột Input 1 co giãn
+        grid_bn.setColumnStretch(3, 1)  # Cột Input 2 co giãn
 
         group_bn.setLayout(grid_bn)
         main_layout.addWidget(group_bn)
@@ -356,7 +399,7 @@ class ChiDinhDichVu(QWidget):
         vbox_ds = QVBoxLayout()
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(["STT", "Tên dịch vụ", "Số lượng", "Đơn giá", "Thành tiền"])
-        
+
         # Cấu hình độ rộng cột
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)  # STT cột cố định
@@ -364,13 +407,13 @@ class ChiDinhDichVu(QWidget):
         header.setSectionResizeMode(2, QHeaderView.Fixed)  # Số lượng cột cố định
         header.setSectionResizeMode(3, QHeaderView.Fixed)  # Đơn giá cột cố định
         header.setSectionResizeMode(4, QHeaderView.Fixed)  # Thành tiền cột cố định
-        
+
         # Đặt độ rộng cụ thể cho các cột
         self.table.setColumnWidth(0, 50)  # STT
         self.table.setColumnWidth(2, 80)  # Số lượng
         self.table.setColumnWidth(3, 100)  # Đơn giá
         self.table.setColumnWidth(4, 100)  # Thành tiền
-        
+
         self.table.setAlternatingRowColors(True)
         # Không cho chỉnh sửa trực tiếp ô
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -395,7 +438,7 @@ class ChiDinhDichVu(QWidget):
         btn_layout.addWidget(self.btn_luu)
         btn_layout.addWidget(self.btn_sua)
         btn_layout.addWidget(self.btn_xoa)
-        btn_layout.addStretch() # Tạo khoảng trống lớn
+        btn_layout.addStretch()  # Tạo khoảng trống lớn
         btn_layout.addWidget(self.btn_in)
         btn_layout.addWidget(self.btn_thoat)
         main_layout.addLayout(btn_layout)
@@ -407,10 +450,9 @@ class ChiDinhDichVu(QWidget):
         self.btn_sua.clicked.connect(self.enable_form_edit)
         self.btn_in.clicked.connect(self.on_in)
         self.btn_thoat.clicked.connect(self.close)
-        
+
         # Initialize form state
         self.set_form_editable(True)  # Start with editable form
-
 
     # ========================== FUNCTION ==========================
     def load_benh_nhan_list(self):
@@ -472,7 +514,7 @@ class ChiDinhDichVu(QWidget):
             return "{:,.0f}".format(float(value)).replace(",", ".")
         except:
             return "0"
-            
+
     def parse_currency(self, text):
         """Chuyển chuỗi số tiền có định dạng về số"""
         try:
@@ -481,21 +523,21 @@ class ChiDinhDichVu(QWidget):
             return float(text)
         except:
             return 0.0
-            
+
     def update_thanhtien_from_inputs(self):
         try:
             sl = int(self.input_soluong.text() or 0)
         except:
             sl = 0
-            
+
         try:
             # Chuyển đổi đơn giá từ định dạng tiền tệ về số
             dg = self.parse_currency(self.input_dongia.text())
         except:
             dg = 0.0
-            
+
         tt = sl * dg
-        
+
         # Cập nhật đơn giá với định dạng tiền tệ
         self.input_dongia.setText(self.format_currency(dg))
         # Cập nhật thành tiền với định dạng tiền tệ
@@ -518,31 +560,31 @@ class ChiDinhDichVu(QWidget):
         # Thêm vào bảng UI
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
+
         # STT
         stt_item = QTableWidgetItem(str(row + 1))
         stt_item.setTextAlignment(Qt.AlignCenter)
         self.table.setItem(row, 0, stt_item)
-        
+
         # Tên dịch vụ
         item_name = QTableWidgetItem(ten)
         item_name.setData(Qt.UserRole, dv_id)
         item_name.setData(Qt.UserRole + 2, dg)  # Lưu giá trị gốc của đơn giá
         item_name.setData(Qt.UserRole + 3, tt)  # Lưu giá trị gốc của thành tiền
         self.table.setItem(row, 1, item_name)
-        
+
         # Số lượng, đơn giá, thành tiền
         sl_item = QTableWidgetItem(str(sl))
         sl_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.table.setItem(row, 2, sl_item)
-        
+
         # Định dạng đơn giá với dấu phân cách hàng nghìn
         formatted_dg = "{:,.0f}".format(dg).replace(",", ".")
         dg_item = QTableWidgetItem(formatted_dg)
         dg_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         dg_item.setData(Qt.UserRole, dg)  # Lưu giá trị gốc
         self.table.setItem(row, 3, dg_item)
-        
+
         # Định dạng thành tiền với dấu phân cách hàng nghìn
         formatted_tt = "{:,.0f}".format(tt).replace(",", ".")
         tt_item = QTableWidgetItem(formatted_tt)
@@ -557,9 +599,9 @@ class ChiDinhDichVu(QWidget):
                 # revert table insert
                 self.table.removeRow(row)
                 return
-            
+
             # Kiểm tra xem đã có phiếu khám mới nhất của bệnh nhân chưa (không giới hạn ngày)
-            conn = get_connection() 
+            conn = get_connection()
             cur = conn.cursor()
             cur.execute("""
                 SELECT id, so_phieu FROM phieu_kham 
@@ -577,7 +619,8 @@ class ChiDinhDichVu(QWidget):
                 # Nếu chưa có thì tạo mới
                 try:
                     phieu_id, so_phieu = self.create_phieu_kham_in_db(
-                        self.hoten.currentData(), self.ngaylap.text(), self.nguoilap.currentText(), self.phongkham.text()
+                        self.hoten.currentData(), self.ngaylap.text(), self.nguoilap.currentText(),
+                        self.phongkham.text()
                     )
                     self.current_phieu_kham_id = phieu_id
                     self.sophieukham.setText(so_phieu)
@@ -755,7 +798,12 @@ class ChiDinhDichVu(QWidget):
                 conn.close()
 
         try:
-            from .print_chi_dinh import print_chi_dinh
+            # FIX LỖI IMPORT TƯƠNG ĐỐI
+            try:
+                from forms.print_chi_dinh import print_chi_dinh
+            except ImportError:
+                from print_chi_dinh import print_chi_dinh
+
             # Thu thập dữ liệu cho phiếu in
             dich_vu = []
             for r in range(self.table.rowCount()):
@@ -764,21 +812,21 @@ class ChiDinhDichVu(QWidget):
                     items = [self.table.item(r, col) for col in range(1, 5)]
                     if any(item is None for item in items):
                         QMessageBox.warning(self, "Cảnh báo",
-                            f"Dòng {r+1} có ô trống.\nVui lòng kiểm tra lại dữ liệu.")
+                                            f"Dòng {r + 1} có ô trống.\nVui lòng kiểm tra lại dữ liệu.")
                         return
-                    
+
                     ten_dv = items[0].text().strip()
                     so_luong = items[1].text().strip()
                     # Parse currency strings robustly (handles "1.440.000", "1.234,56", "120000")
                     don_gia = self.parse_currency(items[2].text().strip())
                     thanh_tien = self.parse_currency(items[3].text().strip())
-                    
+
                     # Kiểm tra dữ liệu trống
                     if not all([ten_dv, so_luong, don_gia, thanh_tien]):
                         QMessageBox.warning(self, "Cảnh báo",
-                            f"Dòng {r+1} có dữ liệu trống.\nVui lòng kiểm tra lại.")
+                                            f"Dòng {r + 1} có dữ liệu trống.\nVui lòng kiểm tra lại.")
                         return
-                    
+
                     dich_vu.append({
                         'ten_dich_vu': ten_dv,
                         'so_luong': int(float(so_luong)),
@@ -786,8 +834,8 @@ class ChiDinhDichVu(QWidget):
                         'thanh_tien': thanh_tien
                     })
                 except (ValueError, AttributeError) as e:
-                    QMessageBox.warning(self, "Cảnh báo", 
-                        f"Có lỗi ở dòng {r+1}: {e}\nVui lòng kiểm tra lại số liệu.")
+                    QMessageBox.warning(self, "Cảnh báo",
+                                        f"Có lỗi ở dòng {r + 1}: {e}\nVui lòng kiểm tra lại số liệu.")
                     return
 
             phieu_data = {
@@ -809,20 +857,24 @@ class ChiDinhDichVu(QWidget):
                 'nguoi_lap': self.nguoilap.currentText(),
                 'bac_si_chi_dinh': self.bacsithuchien.currentText()
             }
-            
+
             # Gọi hàm in phiếu
             output_path = print_chi_dinh(phieu_data)
-            
+
             # Mở cửa sổ xem trước PDF
-            from .pdf_viewer import PDFViewer
+            # FIX LỖI IMPORT TƯƠNG ĐỐI
+            try:
+                from forms.pdf_viewer import PDFViewer
+            except ImportError:
+                from pdf_viewer import PDFViewer
+
             viewer = PDFViewer(output_path, parent=self)
             viewer.setWindowTitle(f"Xem trước phiếu chỉ định - {self.sochidinh.text()}")
             viewer.resize(800, 900)
             viewer.show()
-                
+
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"In thất bại: {e}")
-
 
     def set_form_editable(self, editable=True):
         """Lock/unlock form controls"""
@@ -830,7 +882,7 @@ class ChiDinhDichVu(QWidget):
         self.input_soluong.setEnabled(editable)
         self.input_dongia.setEnabled(editable)
         self.btn_them.setEnabled(editable)
-        
+
         self.btn_sua.setEnabled(not editable)  # Enabled when form is locked
         self.btn_luu.setEnabled(editable)  # Enabled when form is editable
         self.btn_xoa.setEnabled(not editable)  # Enabled when form is locked
@@ -843,9 +895,9 @@ class ChiDinhDichVu(QWidget):
                 return
             try:
                 phieu_id, so_phieu = self.create_phieu_kham_in_db(
-                    self.hoten.currentData(), 
-                    self.ngaylap.text(), 
-                    self.nguoilap.currentText(), 
+                    self.hoten.currentData(),
+                    self.ngaylap.text(),
+                    self.nguoilap.currentText(),
                     self.phongkham.text()
                 )
                 self.current_phieu_kham_id = phieu_id
@@ -858,7 +910,7 @@ class ChiDinhDichVu(QWidget):
         cur = conn.cursor()
         try:
             conn.execute("BEGIN")
-            
+
             # Cập nhật thông tin phiếu khám
             # Update phieu_kham: do NOT store chẩn đoán here anymore (we keep it in chi_dinh)
             cur.execute("""
@@ -894,7 +946,8 @@ class ChiDinhDichVu(QWidget):
                 chan_doan_ban_dau = self.chandoanbandau.text().strip()
                 # Debug: log values being saved
                 try:
-                    print(f"[DEBUG] on_luu: phieu_kham_id={self.current_phieu_kham_id}, kham_lam_sang='''{kham_lam_sang}''', chan_doan_ban_dau='''{chan_doan_ban_dau}'''")
+                    print(
+                        f"[DEBUG] on_luu: phieu_kham_id={self.current_phieu_kham_id}, kham_lam_sang='''{kham_lam_sang}''', chan_doan_ban_dau='''{chan_doan_ban_dau}'''")
                 except Exception:
                     pass
 
@@ -906,12 +959,12 @@ class ChiDinhDichVu(QWidget):
                 ).lastrowid
 
                 so_chi_dinh = f"CD{chi_id:04d}"
-                cur.execute("UPDATE chi_dinh SET so_chi_dinh = ? WHERE id = ?", 
-                          (so_chi_dinh, chi_id))
+                cur.execute("UPDATE chi_dinh SET so_chi_dinh = ? WHERE id = ?",
+                            (so_chi_dinh, chi_id))
 
                 # Lưu chi_id vào item trong bảng để tiện cập nhật sau này
                 self.table.item(row, 1).setData(Qt.UserRole + 1, chi_id)
-                
+
                 # Cũng insert vào bảng thanh_toan để doanh thu được cập nhật
                 cur.execute("""
                     INSERT OR REPLACE INTO thanh_toan (ngay, loai, mo_ta, so_tien)
@@ -990,7 +1043,8 @@ class ChiDinhDichVu(QWidget):
             self.phongkham.setText(pk[4] or "")
             # Load chẩn đoán từ chi_dinh (we do not store diagnosis in phieu_kham)
             try:
-                cur.execute("SELECT chan_doan_ban_dau FROM chi_dinh WHERE phieu_kham_id = ? ORDER BY id DESC LIMIT 1", (pk[0],))
+                cur.execute("SELECT chan_doan_ban_dau FROM chi_dinh WHERE phieu_kham_id = ? ORDER BY id DESC LIMIT 1",
+                            (pk[0],))
                 cd_row = cur.fetchone()
                 if cd_row and cd_row[0]:
                     self.chandoanbandau.setText(cd_row[0])
@@ -1014,9 +1068,9 @@ class ChiDinhDichVu(QWidget):
             # Nếu không có phiếu khám trong ngày, tạo số phiếu mới
             self.current_phieu_kham_id = None
             self.sophieukham.clear()
-            self.ngaylap.setText(QDate.currentDate().toString("dd/MM/yyyy")) 
+            self.ngaylap.setText(QDate.currentDate().toString("dd/MM/yyyy"))
             self.chandoanbandau.clear()
-            self.tongtien.setText(self.format_currency(0))        # 🏥 Lấy thông tin tiếp đón (phòng khám & tình trạng)
+            self.tongtien.setText(self.format_currency(0))  # 🏥 Lấy thông tin tiếp đón (phòng khám & tình trạng)
         cur.execute("""
             SELECT phong_kham, bac_si_kham, tinh_trang
             FROM tiep_don
@@ -1031,7 +1085,7 @@ class ChiDinhDichVu(QWidget):
         else:
             self.tinhtrang.clear()
 
-       # 🧪 Lấy danh sách dịch vụ đã chỉ định
+        # 🧪 Lấy danh sách dịch vụ đã chỉ định
         cur.execute("""
             SELECT cd.id, cd.ten_dich_vu, cd.so_luong, cd.don_gia, cd.thanh_tien
             FROM chi_dinh cd
@@ -1094,17 +1148,17 @@ class ChiDinhDichVu(QWidget):
                 WHERE pk.benh_nhan_id = ? AND so_chi_dinh LIKE ?
             """, (benh_nhan_id, f'CD{benh_nhan_id}%'))
             max_num = cur.fetchone()[0]
-            
+
             if max_num is None:
                 next_num = 1
             else:
                 next_num = int(max_num) + 1
-                
+
             # Format: CD[mã BN][số thứ tự 4 chữ số]
             return f"CD{benh_nhan_id:03d}{next_num:04d}"
         finally:
             conn.close()
-    
+
     def tao_so_phieu_kham_moi(self):
         """Tạo số phiếu khám mới dựa trên mã bệnh nhân và số thứ tự khám"""
         benh_nhan_id = self.hoten.currentData()
@@ -1121,7 +1175,7 @@ class ChiDinhDichVu(QWidget):
                 WHERE benh_nhan_id = ? AND so_phieu LIKE ?
             """, (benh_nhan_id, f'PK{benh_nhan_id}%'))
             max_num = cur.fetchone()[0]
-            
+
             if max_num is None:
                 next_num = 1
             else:
@@ -1245,5 +1299,3 @@ class ChiDinhDichVu(QWidget):
                     self.lbl_chandoanbandau.setText(preview)
                 except Exception:
                     pass
-
-    

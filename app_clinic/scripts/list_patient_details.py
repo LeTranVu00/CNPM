@@ -1,6 +1,30 @@
 import sys
-sys.path.append(r'c:\app_qlpk')
-from database import get_connection
+import os
+
+# ==============================================================================
+# FIX LỖI IMPORT: TỰ ĐỘNG TÌM ĐƯỜNG DẪN GỐC (Thay cho đường dẫn cứng)
+# ==============================================================================
+# 1. Lấy đường dẫn tuyệt đối của file hiện tại
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. Lấy đường dẫn thư mục cha (Project Root)
+# Hàm này sẽ lùi ra một cấp thư mục.
+# Ví dụ: File đang ở "C:\app_qlpk\forms\login.py" -> project_root là "C:\app_qlpk"
+project_root = os.path.dirname(current_dir)
+
+# (Nếu file này nằm ngay ở thư mục gốc, bạn sửa dòng trên thành: project_root = current_dir)
+
+# 3. Thêm đường dẫn gốc vào hệ thống tìm kiếm
+if project_root not in sys.path:
+    sys.path.append(project_root)
+# ==============================================================================
+
+# Bây giờ lệnh import sẽ hoạt động dù bạn để folder ở đâu
+try:
+    from database import get_connection
+except ImportError as e:
+    print(f"❌ Lỗi Import: {e}")
+    print(f"👉 Đang tìm file 'database.py' tại: {project_root}")
 
 conn = get_connection()
 cur = conn.cursor()

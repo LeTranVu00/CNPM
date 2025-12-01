@@ -1,7 +1,27 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from database import create_user, get_connection
+
+# ==============================================================================
+# FIX LỖI IMPORT (Chèn đoạn này lên đầu file)
+# ==============================================================================
+# 1. Lấy đường dẫn thư mục chứa file hiện tại
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. Lấy đường dẫn thư mục gốc (Project Root)
+# Logic cũ của bạn là lùi 1 cấp thư mục (os.path.dirname của thư mục hiện tại)
+project_root = os.path.dirname(current_dir)
+
+# 3. Thêm đường dẫn gốc vào hệ thống tìm kiếm module
+if project_root not in sys.path:
+    sys.path.append(project_root)
+# ==============================================================================
+
+# Bây giờ Python đã nhận diện được thư mục gốc, lệnh import sẽ hoạt động
+try:
+    from database import create_user, get_connection
+except ImportError as e:
+    print(f"❌ Lỗi Import: {e}")
+    print(f"👉 Đường dẫn gốc đã thêm: {project_root}")
 
 def ensure_user(username, password, role):
     try:
