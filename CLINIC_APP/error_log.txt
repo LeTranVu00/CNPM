@@ -1,0 +1,2 @@
+2025-12-10 20:34:53,135 INFO [TiepDonKham] Using database file: c:\clinic_app\data\clinic.db
+2025-12-10 20:35:00,849 INFO [TiepDonKham] Using database file: c:\clinic_app\data\clinic.db
