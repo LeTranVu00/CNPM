@@ -116,6 +116,7 @@ def initialize_database():
             loai_kham TEXT,
             ghi_chu TEXT,
             trang_thai TEXT DEFAULT 'chờ duyệt',
+            nguoi_dat TEXT,
             FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
         )
     """)
@@ -645,24 +646,7 @@ def initialize_database():
         # best-effort backup/drop; ignore failures
         pass
 
-    # Thêm một số thuốc mẫu nếu bảng danh_muc_thuoc trống (giúp test UI chọn thuốc)
-    cursor.execute("SELECT COUNT(*) FROM danh_muc_thuoc")
-    dm_count = cursor.fetchone()[0]
-    if dm_count == 0:
-        sample_drugs = [
-            ("10-417", "ABc", "viên", 10),
-            ("10-493", "Acetazolamid 0,25gr", "viên", 30),
-            ("10-494", "Acetazolamid 0,25gr", "viên", 40),
-            ("10-495", "Acetazolamid 0,25gr", "viên", 50),
-            ("10-23", "acyclovir 200", "viên", 20),
-            ("10-134", "adalat", "viên", 20),
-            ("10-278", "adrenalin 1mg", "ống", 80),
-        ]
-        cursor.executemany(
-            "INSERT OR IGNORE INTO danh_muc_thuoc (ma_thuoc, ten_thuoc, don_vi, ton_kho) VALUES (?, ?, ?, ?)",
-            sample_drugs
-        )
-        conn.commit()
+    # Không tạo dữ liệu mẫu cho danh_muc_thuoc - cho phép người dùng nhập dữ liệu thực
 
     # Thêm một số mã ICD10 mẫu nếu bảng danh_muc_icd10 trống
     cursor.execute("SELECT COUNT(*) FROM danh_muc_icd10")
@@ -705,6 +689,30 @@ def initialize_database():
     cursor.execute("PRAGMA table_info(lich_hen)")
     existing_cols_lich_hen = [r[1] for r in cursor.fetchall()]
     
+    # Thêm cột nguoi_dat nếu chưa có
+    if 'nguoi_dat' not in existing_cols_lich_hen:
+        try:
+            cursor.execute("ALTER TABLE lich_hen ADD COLUMN nguoi_dat TEXT")
+            print("Đã thêm cột 'nguoi_dat' vào bảng lich_hen")
+        except Exception:
+            pass
+
+    # Thêm cột dien_thoai nếu chưa có (số điện thoại bệnh nhân tại thời điểm đặt)
+    if 'dien_thoai' not in existing_cols_lich_hen:
+        try:
+            cursor.execute("ALTER TABLE lich_hen ADD COLUMN dien_thoai TEXT")
+            print("Đã thêm cột 'dien_thoai' vào bảng lich_hen")
+        except Exception:
+            pass
+
+    # Thêm cột dia_chi nếu chưa có (địa chỉ bệnh nhân tại thời điểm đặt)
+    if 'dia_chi' not in existing_cols_lich_hen:
+        try:
+            cursor.execute("ALTER TABLE lich_hen ADD COLUMN dia_chi TEXT")
+            print("Đã thêm cột 'dia_chi' vào bảng lich_hen")
+        except Exception:
+            pass
+    
     if 'phong_kham' in existing_cols_lich_hen and 'loai_kham' not in existing_cols_lich_hen:
         try:
             # SQLite doesn't support direct ALTER COLUMN RENAME in older versions
@@ -719,12 +727,13 @@ def initialize_database():
                     loai_kham TEXT,
                     ghi_chu TEXT,
                     trang_thai TEXT DEFAULT 'chờ duyệt',
+                    nguoi_dat TEXT,
                     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
                 )
             """)
             cursor.execute("""
-                INSERT INTO lich_hen_new (id, benh_nhan_id, ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai)
-                SELECT id, benh_nhan_id, ho_ten, ngay_gio, bac_si, phong_kham, ghi_chu, trang_thai FROM lich_hen
+                INSERT INTO lich_hen_new (id, benh_nhan_id, ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai, nguoi_dat)
+                SELECT id, benh_nhan_id, ho_ten, ngay_gio, bac_si, phong_kham, ghi_chu, trang_thai, NULL FROM lich_hen
             """)
             cursor.execute("DROP TABLE lich_hen")
             cursor.execute("ALTER TABLE lich_hen_new RENAME TO lich_hen")

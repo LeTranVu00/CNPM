@@ -23,6 +23,7 @@ from forms.quan_ly_nhan_su import QuanLyNhanSu
 from forms.quan_ly_lich_hen import QuanLyLichHen
 from forms.quan_ly_xuat_thuoc import QuanLyXuatThuoc
 from forms.xem_lich_su_xuat_thuoc import XemLichSuXuatThuoc
+from forms.quan_ly_tai_khoan import QuanLyTaiKhoan
 
 
 class MainApp(QMainWindow):
@@ -179,6 +180,9 @@ class MainApp(QMainWindow):
             # Admin button for viewing xuat thuoc history
             self.btn_lich_su_xuat_thuoc = QPushButton("Lịch sử xuất thuốc")
             sidebar_layout.addWidget(self.btn_lich_su_xuat_thuoc)
+            # Admin button for managing accounts
+            self.btn_quanly_tai_khoan = QPushButton("Quản lý Tài Khoản")
+            sidebar_layout.addWidget(self.btn_quanly_tai_khoan)
         
 
         # --- THU TIỀN - BÁO CÁO ---
@@ -256,6 +260,9 @@ class MainApp(QMainWindow):
                 self.btn_lich_su_xuat_thuoc.clicked.connect(self.show_lich_su_xuat_thuoc_form)
             if hasattr(self, 'btn_xuat_thuoc'):
                 self.btn_xuat_thuoc.clicked.connect(self.show_xuat_thuoc_form)
+            # Kết nối nút Quản lý Tài Khoản
+            if hasattr(self, 'btn_quanly_tai_khoan'):
+                self.btn_quanly_tai_khoan.clicked.connect(self.show_quanly_tai_khoan_form)
         except Exception:
             pass
 
@@ -289,6 +296,8 @@ class MainApp(QMainWindow):
             self._sidebar_buttons.append(self.btn_lich_su_xuat_thuoc)
         if hasattr(self, 'btn_xuat_thuoc'):
             self._sidebar_buttons.append(self.btn_xuat_thuoc)
+        if hasattr(self, 'btn_quanly_tai_khoan'):
+            self._sidebar_buttons.append(self.btn_quanly_tai_khoan)
 
         # Initialize sidebar buttons to inactive (white)
         for b in self._sidebar_buttons:
@@ -620,6 +629,22 @@ class MainApp(QMainWindow):
                 pass
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể mở Quản lý Lịch Hẹn:\n{e}")
+
+    def show_quanly_tai_khoan_form(self):
+        """Mở form Quản lý Tài Khoản."""
+        try:
+            if self.role != 'admin':
+                QMessageBox.warning(self, "Phân quyền", "Chỉ admin mới có quyền truy cập Quản lý Tài Khoản.")
+                return
+            page = QuanLyTaiKhoan(current_username=self.username)
+            self.content.addWidget(page)
+            self.content.setCurrentWidget(page)
+            try:
+                self._activate_only(self.btn_quanly_tai_khoan)
+            except Exception:
+                pass
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở Quản lý Tài Khoản:\n{e}")
 
 
 if __name__ == "__main__":

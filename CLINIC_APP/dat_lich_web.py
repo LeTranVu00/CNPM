@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, url_for, flash
+from flask import Flask, render_template_string, request, redirect, url_for, flash, g
 import sqlite3
 import os
 
@@ -24,7 +24,7 @@ def get_recent_appointments(limit=5):
   conn = sqlite3.connect(DB_PATH)
   cur = conn.cursor()
   try:
-    cur.execute("SELECT ho_ten, ngay_gio, bac_si, loai_kham, trang_thai FROM lich_hen ORDER BY id DESC LIMIT ?", (limit,))
+    cur.execute("SELECT ho_ten, ngay_gio, bac_si, loai_kham, trang_thai, dien_thoai, dia_chi FROM lich_hen ORDER BY id DESC LIMIT ?", (limit,))
     rows = cur.fetchall()
   except Exception:
     rows = []
@@ -65,6 +65,7 @@ FORM_HTML = '''
         <div class="col-sm-3 text-sm-end mt-3 mt-sm-0">
           <div class="d-flex justify-content-end gap-2 align-items-center">
             <a href="/ehr" class="btn btn-outline-primary btn-sm">Xem hồ sơ bệnh án</a>
+            <a href="/my_appointments" class="btn btn-outline-secondary btn-sm">Lịch hẹn của tôi</a>
           </div>
         </div>
       </div>
@@ -79,7 +80,7 @@ FORM_HTML = '''
       {% endwith %}
 
       <form method="post">
-        <div class="row g-3">
+          <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label required" for="ho_ten">Họ tên bệnh nhân</label>
             <input class="form-control" id="ho_ten" name="ho_ten" placeholder="Hãy nhập họ và tên" required>
@@ -87,6 +88,15 @@ FORM_HTML = '''
           <div class="col-md-6">
             <label class="form-label required" for="ngay_gio">Ngày & Giờ khám</label>
             <input class="form-control" id="ngay_gio" name="ngay_gio" type="datetime-local" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" for="dien_thoai">Số điện thoại</label>
+            <input class="form-control" id="dien_thoai" name="dien_thoai" placeholder="Số điện thoại (không bắt buộc)">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="dia_chi">Địa chỉ</label>
+            <input class="form-control" id="dia_chi" name="dia_chi" placeholder="Địa chỉ (không bắt buộc)">
           </div>
 
           <div class="col-md-6">
@@ -125,10 +135,10 @@ FORM_HTML = '''
         {% if recent_appointments %}
           <div class="table-responsive">
             <table class="table table-sm table-bordered">
-              <thead class="table-light"><tr><th>Họ tên</th><th>Ngày & giờ</th><th>Bác sĩ</th><th>Loại khám</th><th>Trạng thái</th></tr></thead>
+              <thead class="table-light"><tr><th>Họ tên</th><th>SĐT</th><th>Địa chỉ</th><th>Ngày & giờ</th><th>Bác sĩ</th><th>Loại khám</th><th>Trạng thái</th></tr></thead>
               <tbody>
                 {% for r in recent_appointments %}
-                  <tr><td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] or '—' }}</td><td>{{ r[3] or '—' }}</td><td>{{ r[4] or '—' }}</td></tr>
+                  <tr><td>{{ r[0] }}</td><td>{{ r[5] or '—' }}</td><td>{{ r[6] or '—' }}</td><td>{{ r[1] }}</td><td>{{ r[2] or '—' }}</td><td>{{ r[3] or '—' }}</td><td>{{ r[4] or '—' }}</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -157,6 +167,81 @@ FORM_HTML = '''
 '''
 
 
+MY_APPTS_HTML = '''
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lịch hẹn của tôi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>.container{max-width:980px;margin:32px auto}.muted{color:#6b7280}</style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4 class="mb-0">Lịch hẹn của tôi</h4>
+          <div class="muted">Nhập họ tên (và nếu có, số CCCD) để quản lý lịch hẹn của bạn.</div>
+        </div>
+        <div><a class="btn btn-outline-secondary btn-sm" href="/">Quay về đặt lịch</a></div>
+      </div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-info">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Họ và tên</label>
+          <input class="form-control" name="ho_ten" placeholder="Họ và tên" required value="{{ ho_ten or '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Số CCCD (không bắt buộc)</label>
+          <input class="form-control" name="so_cccd" placeholder="Số CCCD" value="{{ so_cccd or '' }}">
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-primary w-100" type="submit">Tìm</button>
+        </div>
+      </form>
+
+      {% if appointments is defined and appointments %}
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light"><tr><th>Họ tên</th><th>Ngày & giờ</th><th>Bác sĩ</th><th>Loại khám</th><th>Trạng thái</th><th>Người đặt</th><th>Hành động</th></tr></thead>
+            <tbody>
+              {% for a in appointments %}
+                <tr>
+                  <td>{{ a[1] }}</td>
+                  <td>{{ a[2] }}</td>
+                  <td>{{ a[3] or '—' }}</td>
+                  <td>{{ a[4] or '—' }}</td>
+                  <td>{{ a[5] or '—' }}</td>
+                  <td>{{ a[6] or '—' }}</td>
+                  <td>
+                    <form method="post" action="/my_appointments/cancel/{{ a[0] }}" style="display:inline-block;">
+                      <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Bạn có chắc muốn hủy lịch này?')">Hủy</button>
+                    </form>
+                    <a class="btn btn-sm btn-outline-primary" href="/my_appointments/edit/{{ a[0] }}">Sửa</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif appointments is defined %}
+        <div class="muted">Không tìm thấy lịch hẹn nào cho thông tin đã cung cấp.</div>
+      {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
+'''
+
+
 @app.route('/', methods=['GET', 'POST'])
 def dat_lich():
   bacsi_list = get_bacsi_list()
@@ -166,6 +251,8 @@ def dat_lich():
   if request.method == 'POST':
     ho_ten = request.form.get('ho_ten', '').strip()
     ngay_gio = request.form.get('ngay_gio', '')
+    dien_thoai = request.form.get('dien_thoai', '').strip()
+    dia_chi = request.form.get('dia_chi', '').strip()
     bac_si = request.form.get('bac_si', '')
     loai_kham = request.form.get('loai_kham', '')
     ghi_chu = request.form.get('ghi_chu', '').strip()
@@ -178,9 +265,9 @@ def dat_lich():
       conn = sqlite3.connect(DB_PATH)
       cur = conn.cursor()
       cur.execute("""
-        INSERT INTO lich_hen (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai)
-        VALUES (?, ?, ?, ?, ?, ?)
-      """, (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, "Đã đặt lịch"))
+        INSERT INTO lich_hen (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai, dien_thoai, dia_chi)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      """, (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, "Đã đặt lịch", dien_thoai, dia_chi))
       conn.commit()
       conn.close()
       flash('Đặt lịch thành công!')
@@ -192,6 +279,112 @@ def dat_lich():
       return redirect(url_for('dat_lich'))
 
   return render_template_string(FORM_HTML, bacsi_list=bacsi_list, loai_kham_list=loai_kham_list, recent_appointments=recent_appointments)
+
+
+def get_db():
+  db = getattr(g, '_database', None)
+  if db is None:
+    db = g._database = sqlite3.connect(DB_PATH)
+  return db
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+  db = getattr(g, '_database', None)
+  if db is not None:
+    db.close()
+
+
+@app.route('/my_appointments', methods=['GET', 'POST'])
+def my_appointments():
+  ho_ten = None
+  so_cccd = None
+  appointments = []
+  if request.method == 'POST':
+    ho_ten = request.form.get('ho_ten', '').strip()
+    so_cccd = request.form.get('so_cccd', '').strip()
+    db = get_db()
+    cur = db.cursor()
+    query = "SELECT id, ho_ten, ngay_gio, bac_si, loai_kham, trang_thai, nguoi_dat FROM lich_hen WHERE ho_ten LIKE ?"
+    params = [f"%{ho_ten}%"]
+    if so_cccd:
+      query += " AND so_cccd = ?"
+      params.append(so_cccd)
+    cur.execute(query, params)
+    appointments = cur.fetchall()
+  return render_template_string(MY_APPTS_HTML, appointments=appointments, ho_ten=ho_ten, so_cccd=so_cccd)
+
+
+@app.route('/my_appointments/cancel/<int:lid>', methods=['POST'])
+def my_appointments_cancel(lid):
+  db = get_db()
+  cur = db.cursor()
+  cur.execute("UPDATE lich_hen SET trang_thai = ? WHERE id = ?", ('Đã hủy', lid))
+  db.commit()
+  flash('Đã hủy lịch hẹn.')
+  return redirect(url_for('my_appointments'))
+
+
+@app.route('/my_appointments/edit/<int:lid>', methods=['GET', 'POST'])
+def my_appointments_edit(lid):
+  db = get_db()
+  cur = db.cursor()
+  if request.method == 'POST':
+    ho_ten_new = request.form.get('ho_ten', '').strip()
+    ngay_gio = request.form.get('ngay_gio')
+    ghi_chu = request.form.get('ghi_chu')
+    cur.execute('UPDATE lich_hen SET ho_ten = ?, ngay_gio = ?, ghi_chu = ? WHERE id = ?', (ho_ten_new, ngay_gio, ghi_chu, lid))
+    db.commit()
+    flash('Cập nhật lịch hẹn thành công.')
+    return redirect(url_for('my_appointments'))
+  cur.execute('SELECT id, ho_ten, ngay_gio, bac_si, loai_kham, trang_thai, ghi_chu, nguoi_dat FROM lich_hen WHERE id = ?', (lid,))
+  row = cur.fetchone()
+  if not row:
+    flash('Không tìm thấy lịch hẹn.')
+    return redirect(url_for('my_appointments'))
+  edit_html = '''
+  <!doctype html>
+  <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sửa lịch hẹn</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  </head>
+  <body><div class="container" style="max-width:680px;margin:32px auto;">
+  <h4>Sửa lịch hẹn</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label required">Họ và tên</label>
+      <input name="ho_ten" class="form-control" value="{{ ho_ten }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Ngày & giờ</label>
+      <div class="input-group">
+        <input id="ngay_gio_input" name="ngay_gio" type="datetime-local" class="form-control" value="{{ ngay_gio }}">
+        <button type="button" class="btn btn-outline-secondary" id="picker_btn" title="Chọn ngày"><i class="bi bi-calendar"></i></button>
+      </div>
+    </div>
+    <div class="mb-3"><label class="form-label">Ghi chú</label><textarea name="ghi_chu" class="form-control">{{ ghi_chu }}</textarea></div>
+    <button class="btn btn-primary">Lưu</button>
+    <a class="btn btn-outline-secondary" href="/my_appointments">Hủy</a>
+  </form>
+  </div>
+  <script>
+    (function(){
+      var btn = document.getElementById('picker_btn');
+      var inp = document.getElementById('ngay_gio_input');
+      if(btn && inp){
+        btn.addEventListener('click', function(e){
+          // Try to open native picker if available, otherwise focus
+          if(typeof inp.showPicker === 'function'){
+            try{ inp.showPicker(); return; }catch(e){}
+          }
+          inp.focus();
+        });
+      }
+    })();
+  </script>
+  </body></html>
+  '''
+  return render_template_string(edit_html, ho_ten=row[1], ngay_gio=row[2], ghi_chu=row[6])
 
 
 # Helper functions for EHR search

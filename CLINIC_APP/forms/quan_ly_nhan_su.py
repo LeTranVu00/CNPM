@@ -85,22 +85,26 @@ class QuanLyNhanSu(QWidget):
             pass
     
     def load_staff(self):
-        """Tải danh sách nhân sự từ database, hỗ trợ lọc theo chức vụ."""
-        # Ensure users table is synced into nhan_su so accounts appear here
-        try:
-            from database import sync_users_to_nhan_su
-            sync_users_to_nhan_su()
-        except Exception:
-            pass
+        """Tải danh sách nhân sự từ bảng users trong database."""
         self.table.setRowCount(0)
         try:
             conn = get_connection()
             cursor = conn.cursor()
             role = self.role_filter.currentText() if hasattr(self, 'role_filter') else 'Tất cả'
-            if role and role != 'Tất cả':
-                cursor.execute("SELECT id, ten, chuc_vu, phong_kham FROM nhan_su WHERE chuc_vu = ? ORDER BY ten", (role,))
+            
+            # Map role filter to database role names
+            role_mapping = {
+                'Tất cả': None,
+                'Bác sĩ': 'bac_si',
+                'Tiếp tân': 'tiep_tan',
+                'Dược sĩ': 'duoc_si'
+            }
+            db_role = role_mapping.get(role)
+            
+            if db_role:
+                cursor.execute("SELECT id, username, full_name, role FROM users WHERE role = ? ORDER BY username", (db_role,))
             else:
-                cursor.execute("SELECT id, ten, chuc_vu, phong_kham FROM nhan_su ORDER BY ten")
+                cursor.execute("SELECT id, username, full_name, role FROM users ORDER BY username")
             rows = cursor.fetchall()
             conn.close()
 
@@ -108,13 +112,21 @@ class QuanLyNhanSu(QWidget):
                 row_pos = self.table.rowCount()
                 self.table.insertRow(row_pos)
 
-                # Name column stores ID in UserRole
-                name_item = QTableWidgetItem(row[1] or "")
+                # Full name (or username if no full_name) - stores ID in UserRole
+                name_item = QTableWidgetItem(row[2] or row[1] or "")
                 name_item.setData(Qt.UserRole, row[0])
                 self.table.setItem(row_pos, 0, name_item)
 
-                self.table.setItem(row_pos, 1, QTableWidgetItem(row[2] or ""))
-                self.table.setItem(row_pos, 2, QTableWidgetItem(row[3] or ""))
+                # Role mapping for display
+                role_display = {
+                    'bac_si': 'Bác sĩ',
+                    'tiep_tan': 'Tiếp tân',
+                    'duoc_si': 'Dược sĩ',
+                    'admin': 'Admin',
+                    'user': 'User'
+                }
+                self.table.setItem(row_pos, 1, QTableWidgetItem(role_display.get(row[3], row[3] or "")))
+                self.table.setItem(row_pos, 2, QTableWidgetItem(""))  # phong_kham trống vì users không có trường này
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể tải danh sách: {e}")
     

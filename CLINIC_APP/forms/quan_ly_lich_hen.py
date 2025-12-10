@@ -74,10 +74,11 @@ class QuanLyLichHen(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
         
-        # Table
-        self.table = QTableWidget(0, 7)
+        # Table (show phone and address columns)
+        # Columns: Bệnh Nhân, SĐT, Địa chỉ, Ngày Giờ, Bác Sĩ, Loại Khám, Trạng Thái, Ghi Chú, BN_ID
+        self.table = QTableWidget(0, 9)
         self.table.setHorizontalHeaderLabels([
-            "Bệnh Nhân", "Ngày Giờ", "Bác Sĩ", 
+            "Bệnh Nhân", "SĐT", "Địa chỉ", "Ngày Giờ", "Bác Sĩ", 
             "Loại Khám", "Trạng Thái", "Ghi Chú", "BN_ID"
         ])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -87,7 +88,7 @@ class QuanLyLichHen(QWidget):
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # Hide BN_ID column (for internal use)
-        self.table.setColumnHidden(6, True)
+        self.table.setColumnHidden(8, True)
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -95,13 +96,18 @@ class QuanLyLichHen(QWidget):
         header.setSectionResizeMode(2, QHeaderView.Fixed)
         header.setSectionResizeMode(3, QHeaderView.Fixed)
         header.setSectionResizeMode(4, QHeaderView.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.Stretch)
-        
-        self.table.setColumnWidth(0, 50)
-        self.table.setColumnWidth(2, 150)
-        self.table.setColumnWidth(3, 120)
-        self.table.setColumnWidth(4, 100)
-        self.table.setColumnWidth(5, 100)
+        header.setSectionResizeMode(5, QHeaderView.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        header.setSectionResizeMode(7, QHeaderView.Stretch)
+
+        self.table.setColumnWidth(0, 200)
+        self.table.setColumnWidth(1, 110)
+        self.table.setColumnWidth(2, 200)
+        self.table.setColumnWidth(3, 140)
+        self.table.setColumnWidth(4, 140)
+        self.table.setColumnWidth(5, 120)
+        self.table.setColumnWidth(6, 100)
+        self.table.setColumnWidth(7, 180)
         
         layout.addWidget(self.table)
     
@@ -112,8 +118,8 @@ class QuanLyLichHen(QWidget):
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT lh.id, lh.ho_ten, lh.ngay_gio, lh.bac_si, lh.loai_kham, 
-                       lh.trang_thai, lh.ghi_chu, lh.benh_nhan_id
+                SELECT lh.id, lh.ho_ten, lh.dien_thoai, lh.dia_chi, lh.ngay_gio, lh.bac_si, lh.loai_kham,
+                       lh.trang_thai, lh.ghi_chu, lh.benh_nhan_id, lh.nguoi_dat
                 FROM lich_hen lh
                 ORDER BY lh.ngay_gio DESC
             """)
@@ -123,25 +129,29 @@ class QuanLyLichHen(QWidget):
             for row in rows:
                 row_pos = self.table.rowCount()
                 self.table.insertRow(row_pos)
-                
-                # Store ID in Qt.UserRole of first column (invisible)
+                # Store LH id in Qt.UserRole of first column
                 ho_ten_item = QTableWidgetItem(row[1] or "")
-                ho_ten_item.setData(Qt.UserRole, row[0])  # Store ID invisibly
+                ho_ten_item.setData(Qt.UserRole, row[0])  # Store LH id invisibly
                 self.table.setItem(row_pos, 0, ho_ten_item)
-                
+
+                # Phone and address
                 self.table.setItem(row_pos, 1, QTableWidgetItem(row[2] or ""))
                 self.table.setItem(row_pos, 2, QTableWidgetItem(row[3] or ""))
+
                 self.table.setItem(row_pos, 3, QTableWidgetItem(row[4] or ""))
-                
-                # Status column with color coding
-                status_item = QTableWidgetItem(row[5] or "")
-                if row[5] == "đã hủy":
+                self.table.setItem(row_pos, 4, QTableWidgetItem(row[5] or ""))
+                self.table.setItem(row_pos, 5, QTableWidgetItem(row[6] or ""))
+
+                # Status column with color coding (index 6)
+                status_item = QTableWidgetItem(row[7] or "")
+                if row[7] == "đã hủy":
                     status_item.setForeground(self.table.palette().color(self.table.palette().Foreground))
                     status_item.setBackground(self.table.palette().color(self.table.palette().HighlightedText))
-                self.table.setItem(row_pos, 4, status_item)
-                
-                self.table.setItem(row_pos, 5, QTableWidgetItem(row[6] or ""))
-                self.table.setItem(row_pos, 6, QTableWidgetItem(str(row[7] or "")))
+                self.table.setItem(row_pos, 6, status_item)
+
+                self.table.setItem(row_pos, 7, QTableWidgetItem(row[8] or ""))
+                # Hidden BN_ID (for internal reference)
+                self.table.setItem(row_pos, 8, QTableWidgetItem(str(row[9] or "")))
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể tải lịch hẹn: {e}")
     
@@ -151,10 +161,11 @@ class QuanLyLichHen(QWidget):
         status_filter = self.status_filter.currentText()
         
         for row in range(self.table.rowCount()):
-            ho_ten = self.table.item(row, 1).text().lower()
-            trang_thai = self.table.item(row, 5).text()
+            ho_ten = self.table.item(row, 0).text().lower()
+            trang_thai = self.table.item(row, 6).text()
             
-            show_search = search_text in ho_ten or search_text in self.table.item(row, 3).text().lower()
+            # search also in doctor column (index 4)
+            show_search = search_text in ho_ten or search_text in self.table.item(row, 4).text().lower()
             show_status = status_filter == "Tất cả" or trang_thai == status_filter
             
             show = show_search and show_status
@@ -199,10 +210,10 @@ class QuanLyLichHen(QWidget):
         
         lh_id = self.table.item(row, 0).data(Qt.UserRole)
         ho_ten = self.table.item(row, 0).text()
-        ngay_gio_cu = self.table.item(row, 1).text()
-        bac_si = self.table.item(row, 2).text()
-        loai_kham = self.table.item(row, 3).text()
-        ghi_chu = self.table.item(row, 5).text()
+        ngay_gio_cu = self.table.item(row, 3).text()
+        bac_si = self.table.item(row, 4).text()
+        loai_kham = self.table.item(row, 5).text()
+        ghi_chu = self.table.item(row, 7).text()
         
         dialog = RescheduleDialog(self, ho_ten, ngay_gio_cu, bac_si, loai_kham, ghi_chu)
         if dialog.exec_():
@@ -232,7 +243,7 @@ class QuanLyLichHen(QWidget):
         
         lh_id = self.table.item(row, 0).data(Qt.UserRole)
         ho_ten = self.table.item(row, 0).text()
-        trang_thai = self.table.item(row, 4).text()
+        trang_thai = self.table.item(row, 6).text()
         
         if trang_thai == "đã hủy":
             QMessageBox.warning(self, "Thông báo", "Lịch hẹn này đã bị hủy rồi")
@@ -264,22 +275,43 @@ class QuanLyLichHen(QWidget):
         
         lh_id = self.table.item(row, 0).data(Qt.UserRole)
         ho_ten = self.table.item(row, 0).text()
-        ngay_gio = self.table.item(row, 1).text()
-        bac_si = self.table.item(row, 2).text()
-        loai_kham = self.table.item(row, 3).text()
-        trang_thai = self.table.item(row, 4).text()
-        ghi_chu = self.table.item(row, 5).text()
+        ngay_gio = self.table.item(row, 3).text()
+        bac_si = self.table.item(row, 4).text()
+        loai_kham = self.table.item(row, 5).text()
+        trang_thai = self.table.item(row, 6).text()
+        ghi_chu = self.table.item(row, 7).text()
+        
+        # Lấy thông tin người đặt từ database
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT dien_thoai, dia_chi, nguoi_dat FROM lich_hen WHERE id = ?", (lh_id,))
+            result = cursor.fetchone()
+            conn.close()
+            if result:
+                dien_thoai = result[0]
+                dia_chi = result[1]
+                nguoi_dat = result[2] if result[2] else "(Không xác định)"
+            else:
+                dien_thoai = None
+                dia_chi = None
+                nguoi_dat = "(Không xác định)"
+        except Exception:
+            nguoi_dat = "(Không xác định)"
         
         msg = f"""
         CHI TIẾT LỊCH HẸN
         ─────────────────
         ID: {lh_id}
         Bệnh nhân: {ho_ten}
+        Số điện thoại: {dien_thoai or '(Không có)'}
+        Địa chỉ: {dia_chi or '(Không có)'}
         Ngày giờ: {ngay_gio}
         Bác sĩ: {bac_si}
         Loại khám: {loai_kham}
         Trạng thái: {trang_thai}
         Ghi chú: {ghi_chu or "(Không có)"}
+        Người đặt: {nguoi_dat}
         """
         
         QMessageBox.information(self, "Chi Tiết Lịch Hẹn", msg)

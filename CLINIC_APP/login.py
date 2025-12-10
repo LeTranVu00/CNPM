@@ -36,7 +36,7 @@ class LoginWindow(QMainWindow):
         layout.setContentsMargins(40, 30, 40, 30)
         
         # Title
-        title_label = QLabel("Hệ Thống Quản Lý Phòng Khám")
+        title_label = QLabel("CHÀO MỪNG TRỞ LẠI")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setFont(QFont("Arial", 16, QFont.Bold))
         
@@ -52,10 +52,10 @@ class LoginWindow(QMainWindow):
         self.init_login_tab(login_tab)
         self.tabs.addTab(login_tab, "Đăng Nhập")
         
-        # Tab 2: Register
-        register_tab = QWidget()
-        self.init_register_tab(register_tab)
-        self.tabs.addTab(register_tab, "Tạo Tài Khoản")
+        # Tab 2: Register (disabled for security)
+        # register_tab = QWidget()
+        # self.init_register_tab(register_tab)
+        # self.tabs.addTab(register_tab, "Tạo Tài Khoản")
         
         # Add all to main layout
         layout.addWidget(title_label)
@@ -175,7 +175,7 @@ class LoginWindow(QMainWindow):
         fullname_label.setFont(QFont("Arial", 10))
         self.reg_fullname_input = QLineEdit()
         self.reg_fullname_input.setFont(QFont("Arial", 10))
-        self.reg_fullname_input.setPlaceholderText("Họ và tên (nếu là Bác Sĩ)")
+        self.reg_fullname_input.setPlaceholderText("Họ và tên")
         fullname_layout.addWidget(fullname_label)
         fullname_layout.addWidget(self.reg_fullname_input)
         

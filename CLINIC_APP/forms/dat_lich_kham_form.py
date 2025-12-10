@@ -51,11 +51,24 @@ class DatLichKhamForm(QWidget):
         self.input_ghi_chu.setMinimumHeight(40)
         self.input_ghi_chu.setStyleSheet("font-size: 18px;")
 
+        # Phone and address inputs
+        self.input_dien_thoai = QLineEdit()
+        self.input_dien_thoai.setPlaceholderText("Số điện thoại (không bắt buộc)")
+        self.input_dien_thoai.setMinimumHeight(36)
+        self.input_dien_thoai.setStyleSheet("font-size: 16px;")
+
+        self.input_dia_chi = QLineEdit()
+        self.input_dia_chi.setPlaceholderText("Địa chỉ (không bắt buộc)")
+        self.input_dia_chi.setMinimumHeight(36)
+        self.input_dia_chi.setStyleSheet("font-size: 16px;")
+
         form_layout.addRow("Họ tên bệnh nhân:", self.input_ho_ten)
         form_layout.addRow("Ngày & Giờ:", self.input_ngay_gio)
         form_layout.addRow("Bác sĩ:", self.combo_bac_si)
         form_layout.addRow("Loại khám:", self.combo_loai_kham)
         form_layout.addRow("Ghi chú:", self.input_ghi_chu)
+        form_layout.addRow("Số điện thoại:", self.input_dien_thoai)
+        form_layout.addRow("Địa chỉ:", self.input_dia_chi)
 
         btn_layout = QHBoxLayout()
         btn_layout.setAlignment(Qt.AlignCenter)
@@ -94,8 +107,10 @@ class DatLichKhamForm(QWidget):
         filter_layout.addStretch()
         history_layout.addLayout(filter_layout)
 
-        self.table_history = QTableWidget(0, 6)
-        self.table_history.setHorizontalHeaderLabels(["ID", "Họ tên", "Ngày & Giờ", "Bác sĩ", "Phòng khám", "Ghi chú"])
+        # Add extra column for a 'Xem' (View) button
+        # Columns: ID, Họ tên, SĐT, Địa chỉ, Ngày & Giờ, Bác sĩ, Phòng khám/Loại khám, Ghi chú, Xem
+        self.table_history = QTableWidget(0, 9)
+        self.table_history.setHorizontalHeaderLabels(["ID", "Họ tên", "SĐT", "Địa chỉ", "Ngày & Giờ", "Bác sĩ", "Loại khám", "Ghi chú", "Xem"])
         self.table_history.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_history.verticalHeader().setVisible(False)
         self.table_history.setAlternatingRowColors(True)
@@ -116,8 +131,9 @@ class DatLichKhamForm(QWidget):
         conn = get_connection()
         cur = conn.cursor()
         try:
+            # include phone and address and nguoi_dat so we can show details
             cur.execute("""
-                SELECT id, ho_ten, ngay_gio, bac_si, phong_kham, ghi_chu
+                SELECT id, ho_ten, dien_thoai, dia_chi, ngay_gio, bac_si, loai_kham, ghi_chu, nguoi_dat
                 FROM lich_hen
                 WHERE ngay_gio >= ? AND ngay_gio <= ?
                 ORDER BY id ASC
@@ -129,10 +145,17 @@ class DatLichKhamForm(QWidget):
         for r in rows:
             row = self.table_history.rowCount()
             self.table_history.insertRow(row)
-            for c, v in enumerate(r):
+            # r expected: (id, ho_ten, dien_thoai, dia_chi, ngay_gio, bac_si, loai_kham, ghi_chu, nguoi_dat)
+            for c, v in enumerate(r[:-1]):
                 item = QTableWidgetItem(str(v) if v is not None else "")
                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
                 self.table_history.setItem(row, c, item)
+            # Last column: 'Xem' button (column index 8)
+            from PyQt5.QtWidgets import QPushButton
+            btn = QPushButton("Xem")
+            btn.setProperty('lh_id', r[0])
+            btn.clicked.connect(lambda checked, _id=r[0]: self.view_history_detail(_id))
+            self.table_history.setCellWidget(row, 8, btn)
 
     def load_doctors_and_rooms(self):
         conn = get_connection()
@@ -156,7 +179,8 @@ class DatLichKhamForm(QWidget):
         conn = get_connection()
         cur = conn.cursor()
         try:
-            cur.execute("SELECT id, ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu FROM lich_hen ORDER BY id ASC")
+            # include phone, address and nguoi_dat for display in the detail view
+            cur.execute("SELECT id, ho_ten, dien_thoai, dia_chi, ngay_gio, bac_si, loai_kham, ghi_chu, nguoi_dat FROM lich_hen ORDER BY id ASC")
             rows = cur.fetchall()
         finally:
             conn.close()
@@ -164,10 +188,17 @@ class DatLichKhamForm(QWidget):
         for r in rows:
             row = self.table_history.rowCount()
             self.table_history.insertRow(row)
-            for c, v in enumerate(r):
+            # r expected: (id, ho_ten, dien_thoai, dia_chi, ngay_gio, bac_si, loai_kham, ghi_chu, nguoi_dat)
+            for c, v in enumerate(r[:-1]):
                 item = QTableWidgetItem(str(v) if v is not None else "")
                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
                 self.table_history.setItem(row, c, item)
+            # Add view button in last column (index 8)
+            from PyQt5.QtWidgets import QPushButton
+            btn = QPushButton("Xem")
+            btn.setProperty('lh_id', r[0])
+            btn.clicked.connect(lambda checked, _id=r[0]: self.view_history_detail(_id))
+            self.table_history.setCellWidget(row, 8, btn)
 
     def load_history(self):
         self.load_history_data()
@@ -184,8 +215,18 @@ class DatLichKhamForm(QWidget):
         try:
             conn = get_connection()
             cur = conn.cursor()
-            cur.execute("INSERT INTO lich_hen (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai) VALUES (?, ?, ?, ?, ?, ?)",
-                        (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, "Chưa duyệt"))
+            
+            # Xác định người đặt dựa trên role
+            nguoi_dat = "Bệnh nhân"  # Mặc định là bệnh nhân
+            if self.role == 'tiep_tan':
+                nguoi_dat = "Tiếp tân"
+            elif self.role == 'bac_si':
+                nguoi_dat = "Bác sĩ"
+            elif self.role == 'admin':
+                nguoi_dat = "Admin"
+            
+            cur.execute("INSERT INTO lich_hen (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, trang_thai, nguoi_dat, dien_thoai, dia_chi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (ho_ten, ngay_gio, bac_si, loai_kham, ghi_chu, "Chưa duyệt", nguoi_dat, self.input_dien_thoai.text().strip(), self.input_dia_chi.text().strip()))
             conn.commit()
             conn.close()
             QMessageBox.information(self, "Thành công", "Đã lưu lịch hẹn!")
@@ -194,6 +235,35 @@ class DatLichKhamForm(QWidget):
             self.combo_bac_si.setCurrentIndex(0)
             self.combo_loai_kham.setCurrentIndex(0)
             self.input_ghi_chu.clear()
+            self.input_dien_thoai.clear()
+            self.input_dia_chi.clear()
             self.load_history_data()  # Tải lại dữ liệu lịch sử
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể lưu lịch hẹn:\n{e}")
+
+    def view_history_detail(self, lh_id: int):
+        """Show appointment details including who placed it."""
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id, ho_ten, dien_thoai, dia_chi, ngay_gio, bac_si, loai_kham, ghi_chu, nguoi_dat FROM lich_hen WHERE id = ?", (lh_id,))
+            r = cur.fetchone()
+            conn.close()
+            if not r:
+                QMessageBox.warning(self, "Không tìm thấy", "Không tìm thấy lịch hẹn này.")
+                return
+            msg = f"""
+
+ID: {r[0]}
+Bệnh nhân: {r[1]}
+Số điện thoại: {r[2] or '(Không có)'}
+Địa chỉ: {r[3] or '(Không có)'}
+Ngày giờ: {r[4]}
+Bác sĩ: {r[5]}
+Loại khám: {r[6]}
+Ghi chú: {r[7] or '(Không có)'}
+Người đặt: {r[8] or '(Không xác định)'}
+"""
+            QMessageBox.information(self, "Chi tiết lịch hẹn", msg)
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể lấy chi tiết: {e}")

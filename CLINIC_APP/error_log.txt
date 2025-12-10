@@ -1,2 +1,8 @@
 2025-12-10 20:34:53,135 INFO [TiepDonKham] Using database file: c:\clinic_app\data\clinic.db
 2025-12-10 20:35:00,849 INFO [TiepDonKham] Using database file: c:\clinic_app\data\clinic.db
+2025-12-10 21:23:34,490 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-10 21:51:55,155 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-10 21:52:27,918 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-10 21:52:54,283 INFO [save_tiep_don] SQL: INSERT INTO tiep_don (ma_hoso, benh_nhan_id, ngay_tiep_don, phong_kham, bac_si_kham, tinh_trang, nv_tiepdon, huyet_ap, nhiet_do, chieu_cao, can_nang, nhip_tho, nhip_tim) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) | VALUES: ['HS001', 1, '2025-12-10', 'Phòng Tai - M\u0169i - H\u1ecdng', 'BS. Tr\u1ea7n Th\u1ecb B', 'N\u1eb7ng', 'Tr\u1ea7n V\u0103n Hùng', '212', '1212', '221', '212', '212', '122']
+2025-12-10 22:10:33,190 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-10 22:10:36,556 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
