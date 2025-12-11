@@ -24,7 +24,7 @@ from database import get_connection, initialize_database
 initialize_database()
 import logging
 
-# Configure simple file logger for the form (one logger shared across module)
+# Cấu hình logger file đơn giản cho form (một logger dùng chung cho module)
 LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app.log'))
 logger = logging.getLogger('app_qlpk')
 if not logger.handlers:
@@ -40,7 +40,7 @@ class TextEditDialog(QDialog):
         self.setWindowTitle(title)
         self.resize(500, 400)
         
-        # Set stylesheet to match main window (buttons use green theme)
+        # Đặt stylesheet cho khớp với cửa sổ chính (nút sử dụng theme màu xanh lá)
         self.setStyleSheet("""
             QDialog { background-color: white; }
             QPushButton { background-color: #0078D7; color: white; border-radius: 4px; padding: 6px 12px; min-width: 80px; }
@@ -53,13 +53,13 @@ class TextEditDialog(QDialog):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
         
-        # Text editor
+        # Trình soạn thảo văn bản
         self.text_edit = QTextEdit()
         self.text_edit.setPlainText(initial_text)
         self.text_edit.setFont(QFont("Arial", 10))
         layout.addWidget(self.text_edit)
         
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(6)
         
@@ -105,7 +105,7 @@ class ChiDinhDichVu(QWidget):
         super().__init__(parent)
         self.current_phieu_kham_id = None
         
-        # Set stylesheet (use green button style like reception form)
+        # Đặt stylesheet (sử dụng style nút màu xanh lá giống form tiếp đón)
         self.base_stylesheet = """
             QGroupBox {
                 font-weight: bold;
@@ -147,10 +147,10 @@ class ChiDinhDichVu(QWidget):
         """
         self.setStyleSheet(self.base_stylesheet)
         
-        # UI setup
+        # Thiết lập giao diện người dùng
         self.initUI()
         
-        # Load initial data
+        # Tải dữ liệu ban đầu
         try:
             self.load_dich_vu_list()
         except Exception:
@@ -160,14 +160,14 @@ class ChiDinhDichVu(QWidget):
         except Exception:
             pass
             
-        # Connect signals
+        # Kết nối các signal
         self.hoten.currentIndexChanged.connect(self.on_select_benh_nhan)
-        # completer and editing finished: only load on explicit selections
+        # completer và khi hoàn tất chỉnh sửa: chỉ tải khi chọn tường minh
         try:
             if self.completer:
                 self.completer.activated.connect(self._on_completer_activated)
             try:
-                # lineEdit exists because we setEditable(True)
+                # lineEdit tồn tại vì ta đã setEditable(True)
                 self.hoten.lineEdit().editingFinished.connect(self._on_hoten_editing_finished)
             except Exception:
                 pass
@@ -427,8 +427,8 @@ class ChiDinhDichVu(QWidget):
         self.btn_in.clicked.connect(self.on_in)
         self.btn_thoat.clicked.connect(self.close)
         
-        # Initialize form state
-        self.set_form_editable(True)  # Start with editable form
+        # Khởi tạo trạng thái form
+        self.set_form_editable(True)  # Bắt đầu với form có thể chỉnh sửa
 
 
     # ========================== FUNCTION ==========================
@@ -477,7 +477,7 @@ class ChiDinhDichVu(QWidget):
             self.hoten.addItem(disp, pid)
             display_texts.append(disp)
 
-        # update completer model
+        # Cập nhật model cho completer
         try:
             if self.completer:
                 from PyQt5.QtCore import QStringListModel
@@ -611,7 +611,7 @@ class ChiDinhDichVu(QWidget):
         if not self.current_phieu_kham_id:
             if not self.hoten.currentData():
                 QMessageBox.warning(self, "Lỗi", "Chưa chọn bệnh nhân. Vui lòng chọn bệnh nhân trước khi thêm dịch vụ.")
-                # revert table insert
+                # Hoàn nguyên thao tác chèn hàng vào bảng
                 self.table.removeRow(row)
                 return
             
@@ -710,7 +710,7 @@ class ChiDinhDichVu(QWidget):
         tt = int(sl * dg)
         ten = self.combo_dichvu.currentText()
 
-        # Preserve existing chi_id (if row was loaded from DB or previously saved)
+        # Giữ lại `chi_id` nếu hàng đã được tải từ DB hoặc đã lưu trước đó
         existing_chi_id = None
         existing_item = self.table.item(sel, 1)
         if existing_item is not None:
@@ -826,7 +826,7 @@ class ChiDinhDichVu(QWidget):
                     
                     ten_dv = items[0].text().strip()
                     so_luong = items[1].text().strip()
-                    # Parse currency strings robustly (handles "1.440.000", "1.234,56", "120000")
+                    # Phân tích chuỗi tiền tệ một cách bền vững (xử lý "1.440.000", "1.234,56", "120000")
                     don_gia = self.parse_currency(items[2].text().strip())
                     thanh_tien = self.parse_currency(items[3].text().strip())
                     
@@ -930,7 +930,7 @@ class ChiDinhDichVu(QWidget):
                 self.ngaylap.text(),
                 self.nguoilap.currentText(),
                 self.phongkham.text(),
-                # Use parse_currency to accept formatted strings like '1.440.000'
+                # Dùng parse_currency để chấp nhận các chuỗi đã định dạng như '1.440.000'
                 self.parse_currency(self.tongtien.text() or "0"),
                 self.current_phieu_kham_id
             ))
@@ -949,7 +949,7 @@ class ChiDinhDichVu(QWidget):
                 # Lấy kham_lam_sang và chan_doan_ban_dau từ form
                 kham_lam_sang = self.khamlamsang.text().strip()
                 chan_doan_ban_dau = self.chandoanbandau.text().strip()
-                # Debug: log values being saved
+                # Debug: ghi log các giá trị đang được lưu
                 try:
                     print(f"[DEBUG] on_luu: phieu_kham_id={self.current_phieu_kham_id}, kham_lam_sang='''{kham_lam_sang}''', chan_doan_ban_dau='''{chan_doan_ban_dau}'''")
                 except Exception:
@@ -1138,7 +1138,7 @@ class ChiDinhDichVu(QWidget):
         try:
             if not text or not text.strip():
                 return
-            # If display contains Mã:HS... parse and find corresponding benh_nhan id
+            # Nếu hiển thị chứa 'Mã:HS...' thì phân tích và tìm id tương ứng của `benh_nhan`
             if "Mã:" in text:
                 try:
                     ma = text.split("Mã:")[1].split()[0].strip()
@@ -1148,7 +1148,7 @@ class ChiDinhDichVu(QWidget):
                     r = cur.fetchone()
                     conn.close()
                     if r and r[0]:
-                        # find index with itemData equal to this id
+                        # tìm chỉ mục có itemData bằng id này
                         target_id = r[0]
                         for i in range(self.hoten.count()):
                             if self.hoten.itemData(i) == target_id:
@@ -1158,7 +1158,7 @@ class ChiDinhDichVu(QWidget):
                 except Exception:
                     pass
 
-            # fallback: find exact display text entry and select it
+            # Phương án dự phòng: tìm mục hiển thị khớp chính xác và chọn nó
             idx = self.hoten.findText(text.strip(), Qt.MatchExactly)
             if idx >= 0:
                 self.hoten.setCurrentIndex(idx)
@@ -1171,7 +1171,7 @@ class ChiDinhDichVu(QWidget):
             text = self.hoten.currentText().strip()
             if not text:
                 return
-            # If the user typed a full display (including 'Mã:'), try to lookup and select
+            # Nếu người dùng gõ toàn bộ hiển thị (bao gồm 'Mã:'), cố gắng tra và chọn
             if "Mã:" in text:
                 try:
                     ma = text.split("Mã:")[1].split()[0].strip()
@@ -1190,7 +1190,7 @@ class ChiDinhDichVu(QWidget):
                 except Exception:
                     pass
 
-            # If the text exactly matches a full display item, select it; otherwise do nothing
+            # Nếu văn bản khớp chính xác với một mục hiển thị đầy đủ thì chọn nó; nếu không thì không làm gì
             idx = self.hoten.findText(text, Qt.MatchExactly)
             if idx >= 0:
                 self.hoten.setCurrentIndex(idx)
@@ -1287,7 +1287,7 @@ class ChiDinhDichVu(QWidget):
             # Lưu thêm kham_lam_sang và chan_doan nếu cột tồn tại
             cur.execute("PRAGMA table_info(chi_dinh)")
             cols = [r[1] for r in cur.fetchall()]
-            # Determine which column name for chẩn đoán exists in the schema
+            # Xác định tên cột chẩn đoán tồn tại trong schema
             chan_col = None
             if 'chan_doan_ban_dau' in cols:
                 chan_col = 'chan_doan_ban_dau'
@@ -1295,7 +1295,7 @@ class ChiDinhDichVu(QWidget):
                 chan_col = 'chan_doan'
 
             if 'kham_lam_sang' in cols and chan_col:
-                # Use parameterized SQL with the correct column name for chan_doan
+                # Sử dụng SQL tham số hóa với tên cột `chan_doan` chính xác
                 sql = f"INSERT INTO chi_dinh(phieu_kham_id, ten_dich_vu, so_luong, don_gia, thanh_tien, kham_lam_sang, {chan_col}) VALUES(?,?,?,?,?,?,?)"
                 kh_text = getattr(self, 'khamlamsang', None).text() if hasattr(self, 'khamlamsang') else None
                 chan_text = getattr(self, 'chandoanbandau', None).text() if hasattr(self, 'chandoanbandau') else None

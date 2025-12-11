@@ -32,7 +32,7 @@ class NoPopupComboBox(QComboBox):
             pass
 
     def showPopup(self):
-        # Prevent the popup from opening
+        # Ngăn không cho popup mở ra
         return
 
 
@@ -48,14 +48,14 @@ class NhapGhiChuDialog(QDialog):
     def initUI(self):
         layout = QVBoxLayout()
         
-        # Add text edit
+        # Thêm ô chỉnh sửa văn bản
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Nhập ghi chú vào đây...")
         if self.current_text and self.current_text != "Nhấn để nhập":
             self.text_edit.setText(self.current_text)
         layout.addWidget(self.text_edit)
         
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         ok_btn = QPushButton("OK")
         ok_btn.clicked.connect(self.accept_note)
@@ -69,7 +69,7 @@ class NhapGhiChuDialog(QDialog):
     
     def accept_note(self):
         self.note = self.text_edit.toPlainText()
-        if self.note.strip():  # Only accept if note is not empty
+        if self.note.strip():  # Chỉ chấp nhận nếu ghi chú không rỗng
             self.accept()
 
 class ChonLieuDungDialog(QDialog):
@@ -116,15 +116,15 @@ class ChonLieuDungDialog(QDialog):
         self.list_view.setSelectionBehavior(QTableView.SelectRows)
         self.list_view.setSelectionMode(QTableView.SingleSelection)
         self.list_view.doubleClicked.connect(self.accept_selection)
-        # Set column width to fill the dialog
+        # Đặt chiều rộng cột để lấp đầy hộp thoại
         self.list_view.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        # Set alternating row colors for better readability
+        # Bật màu xen kẽ cho hàng để dễ đọc hơn
         self.list_view.setAlternatingRowColors(True)
-        # Set a minimum size for better appearance
+        # Đặt kích thước tối thiểu để hiển thị tốt hơn
         self.list_view.setMinimumSize(580, 400)
         layout.addWidget(self.list_view)
 
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         select_btn = QPushButton("Chọn")
         select_btn.clicked.connect(self.accept_selection)
@@ -164,13 +164,13 @@ class ChonThuocDialog(QDialog):
         self.proxy_model.setFilterKeyColumn(-1)  # Search all columns
         self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
-        # Search box
+        # Hộp tìm kiếm
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Tìm kiếm thuốc...")
         self.search_box.textChanged.connect(self.filter_drugs)
         layout.addWidget(self.search_box)
 
-        # Table view
+        # Bảng hiển thị
         self.table_view = QTableView()
         self.table_view.setModel(self.proxy_model)
     # Kéo dài các cột để chiếm toàn bộ chiều rộng dialog
@@ -180,7 +180,7 @@ class ChonThuocDialog(QDialog):
         self.table_view.doubleClicked.connect(self.accept_selection)
         layout.addWidget(self.table_view)
 
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         select_btn = QPushButton("Chọn")
         select_btn.clicked.connect(self.accept_selection)
@@ -195,7 +195,7 @@ class ChonThuocDialog(QDialog):
     def load_drugs(self):
         conn = get_connection()
         cursor = conn.cursor()
-        # include don_vi so we can auto-fill unit when a drug is selected
+        # Bao gồm cột don_vi để có thể tự động điền đơn vị khi chọn thuốc
         cursor.execute("SELECT ma_thuoc, ten_thuoc, don_vi, ton_kho FROM danh_muc_thuoc")
         drugs = cursor.fetchall()
         conn.close()
@@ -214,7 +214,7 @@ class ChonThuocDialog(QDialog):
         indexes = self.table_view.selectedIndexes()
         if indexes:
             row = indexes[0].row()
-            # read ma, ten, don_vi from proxy model
+            # Đọc ma, ten, don_vi từ proxy model
             ma = self.proxy_model.data(self.proxy_model.index(row, 0))
             ten = self.proxy_model.data(self.proxy_model.index(row, 1))
             don_vi = self.proxy_model.data(self.proxy_model.index(row, 2))
@@ -260,17 +260,17 @@ class KeDonThuoc(QWidget):
         self.benh_nhan_id = benh_nhan_id
         self.setWindowTitle("KÊ ĐƠN THUỐC")
         self.setGeometry(200, 100, 1250, 750)
-        # Flag to suppress itemChanged handlers during programmatic updates
+        # Cờ để ẩn handlers itemChanged khi cập nhật chương trình
         self._suppress_item_changed = False
         self.initUI()
 
-        # If a patient ID was provided, auto-select that patient after initializing
+        # Nếu truyền ID bệnh nhân, tự động chọn bệnh nhân đó sau khi khởi tạo
         if self.benh_nhan_id:
             self.auto_select_patient(self.benh_nhan_id)
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
-        # Minimize spacing/margins for a more compact form, especially when zoomed
+        # Giảm khoảng cách/lề để form gọn hơn, đặc biệt khi phóng to
         self.main_layout.setSpacing(4)
         self.main_layout.setContentsMargins(6, 6, 6, 6)
 
@@ -288,8 +288,8 @@ class KeDonThuoc(QWidget):
         grid_bn.setContentsMargins(6, 6, 6, 6)
 
         # Initialize widgets
-        # Use a non-popup combobox for patient display: show selected name
-        # but prevent the user from opening the dropdown (no arrow)
+        # Dùng combobox không bật popup để hiển thị tên đã chọn
+        # nhưng ngăn người dùng mở dropdown (không có mũi tên)
         self.hoten = NoPopupComboBox()
         self.hoten.setEditable(False)
         # currentIndexChanged is still used when programmatically selecting patients
@@ -346,7 +346,7 @@ class KeDonThuoc(QWidget):
         self.donmau.addItem("--Chọn mẫu--", None)
         self.donmau.addItem("Xóa đơn mẫu", "delete")
         self.donmau.currentIndexChanged.connect(self.on_donmau_changed)
-        # Buttons for saving/deleting templates
+        # Nút để lưu / xóa mẫu
         self.btn_save_template = QPushButton("Lưu mẫu")
         self.btn_save_template.setMinimumWidth(80)
         self.btn_save_template.clicked.connect(self.on_save_template)
@@ -366,7 +366,7 @@ class KeDonThuoc(QWidget):
             self.load_templates()
         except Exception:
             pass
-        # Ensure custom 'thuốc khác' table exists for persisting user-entered items
+        # Đảm bảo bảng tùy chỉnh 'thuốc khác' tồn tại để lưu các mục do người dùng nhập
         try:
             self.ensure_thuoc_khac_table()
         except Exception:
@@ -416,7 +416,7 @@ class KeDonThuoc(QWidget):
         grid_bn.addWidget(QLabel("Ngày kê đơn"), 3, 4)
         grid_bn.addWidget(self.ngaykedon, 3, 5)
         grid_bn.addWidget(QLabel("Đơn mẫu"), 3, 6)
-        # Place combobox and template buttons together in a container widget
+        # Đặt combobox và các nút mẫu vào cùng một widget chứa
         tmp_container = QWidget()
         tmp_h = QHBoxLayout()
         tmp_h.setContentsMargins(0, 0, 0, 0)
@@ -502,7 +502,7 @@ class KeDonThuoc(QWidget):
             ghi_chu.setForeground(Qt.gray)
             self.table_thuoc.setItem(row, 0, ma_thuoc)
             self.table_thuoc.setItem(row, 1, ten_thuoc)
-            # Unit combo for column 3 (arrow-only until a choice is made)
+            # Combobox đơn vị cho cột 3 (chỉ hiện mũi tên cho đến khi chọn giá trị)
             unit_combo = self._make_unit_combo()
             self.table_thuoc.setCellWidget(row, 3, unit_combo)
             self.table_thuoc.setItem(row, 8, lieu_dung)
@@ -529,11 +529,11 @@ class KeDonThuoc(QWidget):
         header.setSectionResizeMode(3, QHeaderView.Fixed)
         self.table_thuoc.setColumnWidth(3, 140)
 
-        # Make table expand horizontally but keep vertical size fixed to the calculated
-        # maximum so it doesn't push content down when zooming.
+        # Cho phép bảng mở rộng theo chiều ngang nhưng giữ chiều cao cố định đã tính
+        # để không đẩy nội dung xuống khi phóng/thu nhỏ.
         self.table_thuoc.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # Keep cell double-click behavior
+        # Giữ hành vi double-click trên ô
         self.table_thuoc.cellDoubleClicked.connect(self.handle_cell_double_click)
 
         # Put the main medicines table inside the GroupBox's layout so it's visually grouped
@@ -562,7 +562,7 @@ class KeDonThuoc(QWidget):
             unit = QTableWidgetItem("")
             dose = QTableWidgetItem("Nhấn để chọn")
             dose.setForeground(Qt.gray)
-            # Unit combo for thuốc khác col 2 (arrow-only until a choice is made)
+            # Combobox đơn vị cho bảng thuốc khác cột 2 (chỉ hiện mũi tên cho đến khi chọn)
             unit_combo = self._make_unit_combo()
             self.table_thuoc_khac.setItem(r, 0, name)
             self.table_thuoc_khac.setItem(r, 1, qty)
@@ -577,7 +577,7 @@ class KeDonThuoc(QWidget):
         group_khac.setLayout(vbox_khac)
         self.main_layout.addWidget(group_khac)
 
-        # Adjust column widths for THUỐC KHÁC table
+        # Điều chỉnh chiều rộng cột cho bảng THUỐC KHÁC
         # Make "Tên thuốc ngoài" column shorter and fixed width
         self.table_thuoc_khac.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.table_thuoc_khac.setColumnWidth(0, 350)
@@ -618,7 +618,7 @@ class KeDonThuoc(QWidget):
         btn_layout.setSpacing(6)
         btn_layout.setContentsMargins(2, 2, 2, 2)
 
-        # Left-aligned buttons
+        # Các nút căn lề trái
         left_btn_layout = QHBoxLayout()
         self.btn_nhapmoi = QPushButton("Nhập mới (F1)")
         self.btn_nhapmoi.setMinimumWidth(100)
@@ -657,9 +657,9 @@ class KeDonThuoc(QWidget):
         left_btn_layout.addWidget(self.btn_xoa)
 
         btn_layout.addLayout(left_btn_layout)
-        btn_layout.addStretch()  # Add space between left and right buttons
+        btn_layout.addStretch()  # Thêm khoảng trống giữa nút trái và phải
 
-        # Right-aligned buttons
+        # Các nút căn lề phải
         right_btn_layout = QHBoxLayout()
         self.btn_in_don = QPushButton("In đơn")
         self.btn_in_don.setMinimumWidth(100)
@@ -709,7 +709,7 @@ class KeDonThuoc(QWidget):
         # Hide the line edit text until user enters/selects something
         le = combo.lineEdit()
         le.setStyleSheet("color: rgba(0,0,0,0);")
-        le.clear()  # ensure text is cleared
+        le.clear()  # đảm bảo văn bản được xóa
 
         def reveal_if_not_empty(txt):
             if txt and str(txt).strip():
@@ -723,11 +723,11 @@ class KeDonThuoc(QWidget):
                 except Exception:
                     pass
 
-        # When the current text or the lineedit changes, reveal the text if non-empty
+        # Khi văn bản hiện tại hoặc lineedit thay đổi, hiện văn bản nếu không rỗng
         combo.currentTextChanged.connect(reveal_if_not_empty)
         le.textChanged.connect(reveal_if_not_empty)
 
-        # If an initial value is provided AND it's not empty, select or set it and reveal
+        # Nếu có giá trị khởi tạo và không rỗng, chọn/đặt giá trị và hiển thị
         if initial_value and str(initial_value).strip():
             if initial_value in unit_options:
                 combo.setCurrentIndex(unit_options.index(initial_value))
@@ -738,7 +738,7 @@ class KeDonThuoc(QWidget):
             except Exception:
                 pass
         else:
-            # No initial value or empty - ensure combo is cleared
+            # Không có giá trị khởi tạo hoặc rỗng - đảm bảo combobox được xóa
             combo.setCurrentIndex(-1)
             combo.clearEditText()
             le.clear()
@@ -800,7 +800,7 @@ class KeDonThuoc(QWidget):
             pass
 
     def handle_cell_double_click(self, row, col):
-        # Open drug chooser when user double-clicks on Mã thuốc (col 0) or Tên thuốc (col 1)
+        # Mở hộp chọn thuốc khi người dùng double-click vào Mã thuốc (cột 0) hoặc Tên thuốc (cột 1)
         if col in (0, 1):
             dialog = ChonThuocDialog(self)
             if dialog.exec_() == QDialog.Accepted and dialog.selected_drug:
@@ -829,14 +829,14 @@ class KeDonThuoc(QWidget):
                             try:
                                 unit_widget.setCurrentText(don_vi)
                             except Exception:
-                                # fallback: try setting the edit text
+                                # Dự phòng: thử đặt văn bản chỉnh sửa
                                 try:
                                     unit_widget.lineEdit().setText(don_vi)
                                 except Exception:
                                     pass
                 except Exception:
                     pass
-        # Open dosage chooser when user double-clicks on Liều dùng (col 8)
+        # Mở hộp chọn liều dùng khi người dùng double-click vào Liều dùng (cột 8)
         elif col == 8:
             dialog = ChonLieuDungDialog(self)
             if dialog.exec_() == QDialog.Accepted and dialog.selected_dosage:
@@ -847,7 +847,7 @@ class KeDonThuoc(QWidget):
                 except Exception:
                     pass
                 self.table_thuoc.setItem(row, col, ld_item)
-        # Open note input dialog when user double-clicks on Ghi chú (col 9)
+        # Mở dialog nhập ghi chú khi người dùng double-click vào Ghi chú (cột 9)
         elif col == 9:
             current_text = ""
             current_item = self.table_thuoc.item(row, col)
@@ -928,7 +928,7 @@ class KeDonThuoc(QWidget):
                 cols = [r[1] for r in cur.fetchall()]
                 # If created_by/created_at exist or don_thuoc_id missing, migrate to new schema
                 if ('created_by' in cols) or ('created_at' in cols) or ('don_thuoc_id' not in cols):
-                    # create new table
+                    # Tạo bảng mới
                     cur.execute(
                         """
                         CREATE TABLE IF NOT EXISTS thuoc_khac_new (
@@ -940,7 +940,7 @@ class KeDonThuoc(QWidget):
                         )
                         """
                     )
-                    # copy data: map ten_thuoc, don_vi, ghi_chu where possible
+                    # Sao chép dữ liệu: ánh xạ ten_thuoc, don_vi, ghi_chu nếu có thể
                     copy_cols = []
                     if 'ten_thuoc' in cols:
                         copy_cols.append('ten_thuoc')
@@ -952,7 +952,7 @@ class KeDonThuoc(QWidget):
                         src_cols = ', '.join(copy_cols)
                         dst_cols = src_cols
                         cur.execute(f"INSERT INTO thuoc_khac_new ({dst_cols}) SELECT {src_cols} FROM thuoc_khac")
-                    # drop old and rename
+                    # Xóa bảng cũ và đổi tên
                     cur.execute("DROP TABLE thuoc_khac")
                     cur.execute("ALTER TABLE thuoc_khac_new RENAME TO thuoc_khac")
             conn.commit()
@@ -968,7 +968,7 @@ class KeDonThuoc(QWidget):
 
     def on_save_template(self):
         """Save current prescription content as a template into don_mau and chi_tiet_don_mau."""
-        # Ask for template name
+        # Hỏi tên mẫu
         name, ok = QInputDialog.getText(self, "Lưu mẫu", "Tên mẫu:")
         if not ok or not name.strip():
             return
@@ -978,7 +978,7 @@ class KeDonThuoc(QWidget):
         try:
             conn = get_connection()
             cur = conn.cursor()
-            # insert into don_mau
+            # chèn vào bảng don_mau
             cur.execute("INSERT INTO don_mau (ten_mau, ngay_tao, chan_doan, loi_dan, bac_si, quay_thuoc, nguoi_lap_phieu) VALUES (?, ?, ?, ?, ?, ?, ?)", (
                 name,
                 QDate.currentDate().toString("yyyy-MM-dd"),
@@ -990,7 +990,7 @@ class KeDonThuoc(QWidget):
             ))
             don_mau_id = cur.lastrowid
 
-            # save main table items
+            # lưu các mục trong bảng chính
             for r in range(self.table_thuoc.rowCount()):
                 ma = self.table_thuoc.item(r, 0)
                 if not ma or not ma.text() or ma.text() == "Nhấn để chọn":
@@ -1020,7 +1020,7 @@ class KeDonThuoc(QWidget):
                     ghi.text() if ghi else None
                 ))
 
-            # save thuốc khác
+            # lưu các thuốc khác
             for r in range(self.table_thuoc_khac.rowCount()):
                 ten = self.table_thuoc_khac.item(r, 0)
                 if not ten or not ten.text():
@@ -1039,7 +1039,7 @@ class KeDonThuoc(QWidget):
 
             conn.commit()
             QMessageBox.information(self, "Thành công", "Đã lưu mẫu thành công.")
-            # reload templates
+            # tải lại danh sách mẫu
             try:
                 self.load_templates()
             except Exception:
@@ -1114,7 +1114,7 @@ class KeDonThuoc(QWidget):
                 except Exception:
                     pass
 
-            # Load template details
+            # Tải chi tiết mẫu
             cur.execute("SELECT ma_thuoc, ten_thuoc, so_luong, don_vi, sang, trua, chieu, toi, lieu_dung, ghi_chu FROM chi_tiet_don_mau WHERE don_mau_id = ?", (template_id,))
             details = cur.fetchall()
 
@@ -1188,7 +1188,7 @@ class KeDonThuoc(QWidget):
         """
         def _make_empty_row(row_idx):
             """Helper to create an empty row with proper placeholders"""
-            # Block signals while setting up the row to prevent any auto-fill
+            # Chặn tín hiệu trong khi thiết lập hàng để tránh tự động điền
             old_state = self.table_thuoc.signalsBlocked()
             self.table_thuoc.blockSignals(True)
             try:
@@ -1196,7 +1196,7 @@ class KeDonThuoc(QWidget):
                 ten = QTableWidgetItem("Nhấn để chọn")
                 lieu = QTableWidgetItem("Nhấn để chọn")
                 ghi = QTableWidgetItem("Nhấn để chọn")
-                # Ensure placeholders are gray
+                # Đảm bảo các placeholder có màu xám
                 ma.setForeground(Qt.gray)
                 ten.setForeground(Qt.gray)
                 lieu.setForeground(Qt.gray)
@@ -1248,7 +1248,7 @@ class KeDonThuoc(QWidget):
                     self.table_thuoc.insertRow(r)
                     _make_empty_row(r)
             
-            # Now ensure all empty rows have proper placeholders
+            # Bây giờ đảm bảo tất cả các hàng trống có placeholder hợp lệ
             for r in range(self.table_thuoc.rowCount()):
                 item0 = self.table_thuoc.item(r, 0)
                 if not item0 or not item0.text().strip() or item0.data(Qt.UserRole) == "placeholder":
@@ -1258,7 +1258,7 @@ class KeDonThuoc(QWidget):
         # Normal append mode - just add one row
         r = self.table_thuoc.rowCount()
         self.table_thuoc.insertRow(r)
-        _make_empty_row(r)  # Use the helper to ensure consistent empty row format
+        _make_empty_row(r)  # Dùng hàm trợ giúp để đảm bảo định dạng hàng trống nhất quán
 
     def _append_empty_row_khac(self):
         """Append a new empty row to the 'thuốc khác' table with placeholders."""
@@ -1289,7 +1289,7 @@ class KeDonThuoc(QWidget):
             item.setData(Qt.UserRole, None)
             item.setForeground(Qt.black)
             # After user provides a value for mã thuốc / tên thuốc / liều dùng,
-            # make that cell non-editable to prevent accidental deletion/overwrite
+            # Đặt ô đó không thể chỉnh sửa để tránh xóa/ghi đè vô tình
             try:
                 if item.column() in (0, 1, 8):
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
@@ -1297,7 +1297,7 @@ class KeDonThuoc(QWidget):
                 pass
             
         last_row = self.table_thuoc.rowCount() - 1
-        # If edited item is in the last row and not empty, append a new row
+        # Nếu ô vừa chỉnh sửa nằm ở hàng cuối và không rỗng, thêm một hàng mới
         if item.row() == last_row and item.text().strip():
             self._suppress_item_changed = True
             self._append_empty_row_main()
@@ -1407,7 +1407,7 @@ class KeDonThuoc(QWidget):
         # Get current patient info before reset
         current_patient_data = self.hoten.currentData()
         
-        # Reset only prescription content
+        # Chỉ đặt lại nội dung đơn thuốc
         self.reset_prescription_content()
         
         try:
@@ -1439,7 +1439,7 @@ class KeDonThuoc(QWidget):
         except Exception:
             pass
         
-        # Reload templates in case they were modified
+        # Tải lại mẫu đề phòng nếu có thay đổi
         try:
             self.load_templates()
         except Exception:
@@ -1448,13 +1448,13 @@ class KeDonThuoc(QWidget):
     def reset_prescription_content(self):
         """Reset only the prescription tables and note, keeping all other info intact."""
         try:
-            # Reset tables to placeholders
+            # Đặt lại các bảng về placeholder
             self.reset_tables()
         except Exception:
             pass
 
         try:
-            # Reset only prescription-specific fields
+            # Chỉ đặt lại các trường thuộc về đơn thuốc
             self.loidan.clear()
             self.songay.setValue(1)
             self.tongtien.setText("0")
@@ -1463,14 +1463,14 @@ class KeDonThuoc(QWidget):
             except Exception:
                 pass
             
-            # Reset dates to current date
+            # Đặt lại ngày về ngày hiện tại
             current_date = QDate.currentDate()
             self.ngaykedon.setDate(current_date)
             self.taikham.setDate(current_date)
             
-            # reset last saved id because we are creating a new unsaved prescription
+            # đặt lại id lưu cuối vì đang tạo đơn mới chưa lưu
             self.last_don_thuoc_id = None
-            # enable editing so user can start typing immediately
+            # bật chỉnh sửa để người dùng có thể nhập ngay
             self.enable_form_editing()
         except Exception:
             pass
@@ -1554,7 +1554,7 @@ class KeDonThuoc(QWidget):
         try:
             html = self.build_print_html()
 
-            # prefer QTextDocument for consistent rendering
+            # Ưu tiên QTextDocument để render nhất quán
             try:
                 from PyQt5.QtGui import QTextDocument
                 doc = QTextDocument()
@@ -1685,16 +1685,16 @@ class KeDonThuoc(QWidget):
                 unit = unit_w.currentText() if unit_w else ''
                 ld = self.table_thuoc.item(r, 8).text() if self.table_thuoc.item(r, 8) else ''
                 note = self.table_thuoc.item(r, 9).text() if self.table_thuoc.item(r, 9) else ''
-                # main row
+                # Hàng chính
                 html.append(f"<tr><td>{text}</td><td>{ten}</td><td>{qty}</td><td>{unit}</td><td>{ld}</td></tr>")
-                # if note exists, add a full-width row below the item for the note (allows wrapping)
+                # Nếu có ghi chú, thêm một hàng toàn chiều rộng bên dưới mục để hiển thị ghi chú (cho phép xuống dòng)
                 if note and note.strip():
                     safe_note = note.replace('\n', '<br/>')
                     html.append(f"<tr><td colspan='5' style='background:#fafafa'><b>Ghi chú:</b> {safe_note}</td></tr>")
             html.append("</table>")
 
             # Thuốc khác
-            # Collect non-empty 'thuốc khác' rows first; only render section when there's data
+            # Thu thập các hàng 'thuốc khác' không rỗng trước; chỉ hiển thị phần khi có dữ liệu
             other_rows = []
             for r in range(self.table_thuoc_khac.rowCount()):
                 name_item = self.table_thuoc_khac.item(r, 0)
@@ -1717,11 +1717,11 @@ class KeDonThuoc(QWidget):
                     html.append(f"<tr><td>{name}</td><td>{qty}</td><td>{unit}</td><td>{ld}</td></tr>")
                 html.append("</table>")
 
-            # Notes / instructions
+            # Ghi chú / hướng dẫn
             html.append("<h4>Lời dặn</h4>")
             html.append(f"<div>{loi_dan.replace('\n', '<br/>')}</div>")
 
-            # Footer
+            # Chân trang
             html.append("<br/><div style='text-align:right'>Ngày kê: " + ngay + "</div>")
 
             return '\n'.join(html)
@@ -1740,7 +1740,7 @@ class KeDonThuoc(QWidget):
             QMessageBox.warning(self, "Lỗi", f"Không thể bật chế độ sửa: {e}")
 
     def on_xoa(self):
-        # If a row in the main table is selected, delete that detail row only
+        # Nếu chọn một hàng trong bảng chính, chỉ xóa hàng chi tiết đó
         try:
             sel = self.table_thuoc.selectedIndexes()
             if sel:
@@ -1766,7 +1766,7 @@ class KeDonThuoc(QWidget):
                         conn.commit()
                         # remove row from UI
                         self.table_thuoc.removeRow(row)
-                        # ensure at least one empty row exists
+                        # đảm bảo ít nhất tồn tại một hàng trống
                         if self.table_thuoc.rowCount() == 0:
                             self._append_empty_row_main()
                         QMessageBox.information(self, "Thành công", "Đã xóa hàng thuốc.")
@@ -1788,7 +1788,7 @@ class KeDonThuoc(QWidget):
                         self._append_empty_row_main()
                     return
 
-            # If a row in thuốc khác is selected, delete that detail only
+            # Nếu chọn một hàng trong 'thuốc khác', chỉ xóa chi tiết đó
             sel_k = self.table_thuoc_khac.selectedIndexes()
             if sel_k:
                 row = sel_k[0].row()
@@ -2030,7 +2030,7 @@ class KeDonThuoc(QWidget):
                 if t:
                     patient_id = t[0]
 
-            # Prefer diagnosis from detailed exam info if available
+            # Ưu tiên lấy chẩn đoán từ thông tin chi tiết khám nếu có
             try:
                 if phieu_kham_id:
                     cur.execute("SELECT chan_doan FROM chi_tiet_phieu_kham WHERE phieu_kham_id = ? ORDER BY id DESC LIMIT 1", (phieu_kham_id,))
@@ -2075,7 +2075,7 @@ class KeDonThuoc(QWidget):
 
                     # Populate main medicines table
                     main_count = len(main_rows)
-                    # Ensure at least 0 rows; we'll later ensure 5 visible rows using helper
+                    # Đảm bảo ít nhất 0 hàng; sau sẽ đảm bảo 5 hàng hiển thị bằng helper
                     self.table_thuoc.setRowCount(main_count)
                     for r, d in enumerate(main_rows):
                         detail_id, ma, ten, so_luong, don_vi, sang, trua, chieu, toi, lieu_dung, ghi_chu = d
@@ -2120,7 +2120,7 @@ class KeDonThuoc(QWidget):
                             note_item.setForeground(Qt.gray)
                         self.table_thuoc.setItem(r, 9, note_item)
 
-                    # Ensure the main table shows the expected placeholder rows (min 5 visible)
+                    # Đảm bảo bảng chính hiển thị số hàng placeholder như mong đợi (tối thiểu 5 hàng hiển thị)
                     self._append_empty_row_main(force_count=5)
 
                     # Populate 'thuốc khác' table from other_rows
@@ -2154,7 +2154,7 @@ class KeDonThuoc(QWidget):
                         except Exception:
                             pass
                     else:
-                        # No other rows -> ensure default placeholders
+                        # Không có hàng khác -> đảm bảo placeholder mặc định
                         self.table_thuoc_khac.setRowCount(3)
                         for r in range(self.table_thuoc_khac.rowCount()):
                             name = QTableWidgetItem("")
@@ -2371,7 +2371,7 @@ class KeDonThuoc(QWidget):
                     # Update other fields từ record mới nhất
                     self.doituong.setText(doi_tuong or "")
                     self.sophieukham.setText(so_phieu or "")
-                    # Prefer diagnosis from the detailed exam info (chi_tiet_phieu_kham)
+                    # Ưu tiên chẩn đoán từ chi tiết phiếu khám (chi_tiet_phieu_kham)
                     try:
                         if phieu_kham_id:
                             cursor.execute("SELECT chan_doan FROM chi_tiet_phieu_kham WHERE phieu_kham_id = ? ORDER BY id DESC LIMIT 1", (phieu_kham_id,))
@@ -2406,7 +2406,7 @@ class KeDonThuoc(QWidget):
                     # Load đơn thuốc gần nhất
                     # When selecting a patient and auto-loading their most recent
                     # prescription, keep the form editable so user can immediately
-                    # modify/enter a new prescription. Only lock when they press Lưu.
+                    # sửa/nhập đơn mới. Chỉ khóa khi họ nhấn Lưu.
                     self.load_prescription(prescriptions[0][0], disable_after_load=False)
                 else:
                     # Reset tables nếu không có đơn thuốc
@@ -2596,7 +2596,7 @@ class KeDonThuoc(QWidget):
             except Exception:
                 pass
 
-            # Ensure don_thuoc has a 'da_luu' column and mark this record as saved
+            # Đảm bảo bảng don_thuoc có cột 'da_luu' và đánh dấu bản ghi này là đã lưu
             try:
                 cursor.execute("PRAGMA table_info('don_thuoc')")
                 cols = [r[1] for r in cursor.fetchall()]

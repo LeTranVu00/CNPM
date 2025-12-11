@@ -39,16 +39,17 @@ class QuanLyXuatThuoc(QWidget):
         controls.addStretch()
         layout.addLayout(controls)
 
-        # Create tab widget for prescriptions and supplementary prescriptions
+        # Tạo tab widget cho các đơn thuốc và đơn thuốc bổ sung
         self.tabs = QTabWidget()
         
-        # Tab 1: Regular prescriptions
+        # Tab 1: Đơn thuốc thường
         tab_regular = QWidget()
         tab_regular_layout = QVBoxLayout(tab_regular)
         
-        # Table of prescriptions
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["ID", "Ngày kê", "Bác sĩ", "Tổng tiền", "Trạng thái"])
+        # Bảng các đơn thuốc
+        # Bỏ cột ID khỏi hiển thị; lưu `don_id` vào Qt.UserRole của ô 'Ngày kê'
+        self.table = QTableWidget(0, 4)
+        self.table.setHorizontalHeaderLabels(["Ngày kê", "Bác sĩ", "Tổng tiền", "Trạng thái"])
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setMaximumHeight(150)
@@ -56,12 +57,12 @@ class QuanLyXuatThuoc(QWidget):
         
         self.tabs.addTab(tab_regular, "Đơn Thuốc Thường")
         
-        # Tab 2: Supplementary prescriptions
+        # Tab 2: Đơn thuốc bổ sung
         tab_supplement = QWidget()
         tab_supplement_layout = QVBoxLayout(tab_supplement)
         
-        self.table_bo_sung = QTableWidget(0, 5)
-        self.table_bo_sung.setHorizontalHeaderLabels(["ID", "Ngày kê", "Bác sĩ", "Tổng tiền", "Trạng thái"])
+        self.table_bo_sung = QTableWidget(0, 4)
+        self.table_bo_sung.setHorizontalHeaderLabels(["Ngày kê", "Bác sĩ", "Tổng tiền", "Trạng thái"])
         self.table_bo_sung.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_bo_sung.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_bo_sung.setMaximumHeight(150)
@@ -71,12 +72,12 @@ class QuanLyXuatThuoc(QWidget):
         
         layout.addWidget(self.tabs)
 
-        # Label for drug details table
+        # Nhãn cho bảng chi tiết thuốc
         drug_label = QLabel("Danh mục tất cả thuốc (Tồn kho sẽ cập nhật khi xuất):")
         drug_label.setStyleSheet('font-weight:bold; font-size:11pt; color:#333')
         layout.addWidget(drug_label)
 
-        # Table of all drugs with stock info
+        # Bảng tất cả thuốc kèm thông tin tồn kho
         self.table_drugs = QTableWidget(0, 5)
         self.table_drugs.setHorizontalHeaderLabels(["Tên thuốc", "Mã thuốc", "Đơn vị", "Tồn kho", "Ghi chú"])
         self.table_drugs.setSelectionBehavior(QTableWidget.SelectRows)
@@ -84,7 +85,7 @@ class QuanLyXuatThuoc(QWidget):
         self.table_drugs.setAlternatingRowColors(True)
         layout.addWidget(self.table_drugs)
 
-        # Detail area
+        # Khu vực chi tiết
         detail_label = QLabel("Ghi chú:")
         detail_label.setStyleSheet('font-weight:bold; font-size:11pt; color:#333')
         layout.addWidget(detail_label)
@@ -94,7 +95,7 @@ class QuanLyXuatThuoc(QWidget):
         self.detail.setMinimumHeight(100)
         layout.addWidget(self.detail)
 
-        # Action buttons
+        # Các nút hành động
         actions = QHBoxLayout()
         self.btn_view = QPushButton("Xem chi tiết")
         self.btn_view.clicked.connect(self.view_selected)
@@ -105,7 +106,7 @@ class QuanLyXuatThuoc(QWidget):
         actions.addWidget(self.btn_xuat)
         layout.addLayout(actions)
         
-        # Connect signal for supplementary prescriptions
+        # Kết nối signal cho đơn thuốc bổ sung
         try:
             app_signals.don_bo_sung_printed.connect(self.on_don_bo_sung_printed)
         except Exception:
@@ -132,53 +133,140 @@ class QuanLyXuatThuoc(QWidget):
             return
         patient_id = self.combo_patient.currentData()
         
-        # Load regular prescriptions
+        # Tải các đơn thuốc thường
         pres = get_prescriptions_for_patient(patient_id)
         self.table.setRowCount(0)
         self.current_pres = pres
         for p in pres:
             r = self.table.rowCount()
             self.table.insertRow(r)
-            self.table.setItem(r, 0, QTableWidgetItem(str(p['id'])))
-            self.table.setItem(r, 1, QTableWidgetItem(str(p['ngay_ke'] or '')))
-            self.table.setItem(r, 2, QTableWidgetItem(str(p['bac_si'] or '')))
-            self.table.setItem(r, 3, QTableWidgetItem(str(p['tong_tien'] or '0')))
+            # Lưu don_id vào data của ô 'Ngày kê' và hiển thị ngày ở cột 0
+            date_item = QTableWidgetItem(str(p['ngay_ke'] or ''))
+            date_item.setData(Qt.UserRole, p['id'])
+            self.table.setItem(r, 0, date_item)
+
+            # Hiển thị tên bác sĩ là người đang đăng nhập nếu có, nếu không thì dùng giá trị trong record
+            display_doctor = p.get('bac_si') or ''
+            try:
+                if getattr(self, 'username', None):
+                    conn_d = get_connection()
+                    cur_d = conn_d.cursor()
+                    cur_d.execute("SELECT full_name FROM users WHERE username = ?", (self.username,))
+                    rown = cur_d.fetchone()
+                    conn_d.close()
+                    if rown and rown[0]:
+                        display_doctor = rown[0]
+            except Exception:
+                pass
+
+            self.table.setItem(r, 1, QTableWidgetItem(str(display_doctor)))
+
+            # Tính tổng tiền cho đơn hiện tại: sum(so_luong * gia_thuoc) từ chi_tiet_don_thuoc
+            try:
+                conn2 = get_connection()
+                cur2 = conn2.cursor()
+                cur2.execute("""
+                    SELECT SUM(ct.so_luong * COALESCE(dmt.gia_thuoc, 0))
+                    FROM chi_tiet_don_thuoc ct
+                    LEFT JOIN danh_muc_thuoc dmt ON ct.ma_thuoc = dmt.ma_thuoc
+                    WHERE ct.don_thuoc_id = ?
+                """, (p['id'],))
+                total_row = cur2.fetchone()
+                total_amount = total_row[0] or 0
+                conn2.close()
+            except Exception:
+                total_amount = p.get('tong_tien', 0) or 0
+
+            try:
+                total_text = f"{float(total_amount):,.0f}"
+            except Exception:
+                total_text = str(total_amount)
+
+            self.table.setItem(r, 2, QTableWidgetItem(total_text))
             status_text = "Đã xuất" if p.get('da_xuat') else "Chưa xuất"
-            self.table.setItem(r, 4, QTableWidgetItem(status_text))
+            self.table.setItem(r, 3, QTableWidgetItem(status_text))
         
-        # Load supplementary prescriptions
+        # Tải các đơn thuốc bổ sung
         pres_bo_sung = get_supplementary_prescriptions_for_patient(patient_id)
         self.table_bo_sung.setRowCount(0)
         self.current_pres_bo_sung = pres_bo_sung
         for p in pres_bo_sung:
             r = self.table_bo_sung.rowCount()
             self.table_bo_sung.insertRow(r)
-            self.table_bo_sung.setItem(r, 0, QTableWidgetItem(str(p['id'])))
-            self.table_bo_sung.setItem(r, 1, QTableWidgetItem(str(p['ngay_ke'] or '')))
-            self.table_bo_sung.setItem(r, 2, QTableWidgetItem(str(p['bac_si'] or '')))
-            self.table_bo_sung.setItem(r, 3, QTableWidgetItem(str(p['tong_tien'] or '0')))
+            # Lưu don_id vào data của ô 'Ngày kê' và hiển thị ngày ở cột 0
+            date_item_b = QTableWidgetItem(str(p['ngay_ke'] or ''))
+            date_item_b.setData(Qt.UserRole, p['id'])
+            self.table_bo_sung.setItem(r, 0, date_item_b)
+
+            # Hiển thị tên bác sĩ là người đang đăng nhập nếu có, nếu không thì dùng giá trị trong record
+            display_doctor = p.get('bac_si') or ''
+            try:
+                if getattr(self, 'username', None):
+                    conn_d = get_connection()
+                    cur_d = conn_d.cursor()
+                    cur_d.execute("SELECT full_name FROM users WHERE username = ?", (self.username,))
+                    rown = cur_d.fetchone()
+                    conn_d.close()
+                    if rown and rown[0]:
+                        display_doctor = rown[0]
+            except Exception:
+                pass
+
+            self.table_bo_sung.setItem(r, 1, QTableWidgetItem(str(display_doctor)))
+            # Tính tổng tiền cho đơn bổ sung
+            try:
+                conn3 = get_connection()
+                cur3 = conn3.cursor()
+                cur3.execute("""
+                    SELECT SUM(ct.so_luong * COALESCE(dmt.gia_thuoc, 0))
+                    FROM chi_tiet_don_thuoc_bo_sung ct
+                    LEFT JOIN danh_muc_thuoc dmt ON ct.ma_thuoc = dmt.ma_thuoc
+                    WHERE ct.don_thuoc_bo_sung_id = ?
+                """, (p['id'],))
+                total_row = cur3.fetchone()
+                total_amount = total_row[0] or 0
+                conn3.close()
+            except Exception:
+                total_amount = p.get('tong_tien', 0) or 0
+
+            try:
+                total_text = f"{float(total_amount):,.0f}"
+            except Exception:
+                total_text = str(total_amount)
+
+            self.table_bo_sung.setItem(r, 2, QTableWidgetItem(total_text))
             status_text = "Đã xuất" if p.get('xuat_thuoc') else "Chưa xuất"
-            self.table_bo_sung.setItem(r, 4, QTableWidgetItem(status_text))
+            self.table_bo_sung.setItem(r, 3, QTableWidgetItem(status_text))
 
     def view_selected(self):
-        # Check which tab is active
+        # Kiểm tra tab đang hoạt động
         active_tab = self.tabs.currentIndex()
         
         if active_tab == 0:
-            # Regular prescriptions tab
+            # Tab đơn thuốc thường
             row = self.table.currentRow()
             if row < 0:
                 QMessageBox.warning(self, "Chọn đơn", "Vui lòng chọn một đơn thuốc để xem chi tiết.")
                 return
-            don_id = int(self.table.item(row, 0).text())
+            # don_id được lưu trong Qt.UserRole của ô 'Ngày kê'
+            date_item = self.table.item(row, 0)
+            try:
+                don_id = int(date_item.data(Qt.UserRole))
+            except Exception:
+                don_id = None
             pres = next((p for p in self.current_pres if p['id'] == don_id), None)
         elif active_tab == 1:
-            # Supplementary prescriptions tab
+            # Tab đơn thuốc bổ sung
             row = self.table_bo_sung.currentRow()
             if row < 0:
                 QMessageBox.warning(self, "Chọn đơn", "Vui lòng chọn một đơn thuốc bổ sung để xem chi tiết.")
                 return
-            don_id = int(self.table_bo_sung.item(row, 0).text())
+            # don_id được lưu trong Qt.UserRole của ô 'Ngày kê' (bảng bổ sung)
+            date_item = self.table_bo_sung.item(row, 0)
+            try:
+                don_id = int(date_item.data(Qt.UserRole))
+            except Exception:
+                don_id = None
             pres = next((p for p in self.current_pres_bo_sung if p['id'] == don_id), None)
         else:
             QMessageBox.warning(self, "Chọn đơn", "Vui lòng chọn đơn thuốc trước.")
@@ -188,21 +276,95 @@ class QuanLyXuatThuoc(QWidget):
             QMessageBox.critical(self, "Lỗi", "Không tìm thấy đơn thuốc đã chọn.")
             return
         
-        # Store current prescription for later use
+        # Lưu đơn hiện tại để sử dụng sau
         self.current_prescription = pres
         
-        # Load all drugs from danh_muc_thuoc
+        # Tải tất cả thuốc từ bảng `danh_muc_thuoc`
         self.load_all_drugs()
         
-        # Update detail text
-        lines = [f"Đơn ID: {pres['id']}", f"Ngày kê: {pres['ngay_ke']}", f"Bác sĩ: {pres['bac_si']}", f"Tổng tiền: {pres.get('tong_tien', '0')}"]
+        # Tính tổng tiền từ giá thuốc trong danh mục nhân với số lượng
+        total_amount = 0
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            if active_tab == 0:
+                cur.execute("""
+                    SELECT ct.so_luong, dmt.gia_thuoc 
+                    FROM chi_tiet_don_thuoc ct 
+                    LEFT JOIN danh_muc_thuoc dmt ON ct.ma_thuoc = dmt.ma_thuoc 
+                    WHERE ct.don_thuoc_id = ?
+                """, (don_id,))
+            else:
+                cur.execute("""
+                    SELECT ct.so_luong, dmt.gia_thuoc 
+                    FROM chi_tiet_don_thuoc_bo_sung ct 
+                    LEFT JOIN danh_muc_thuoc dmt ON ct.ma_thuoc = dmt.ma_thuoc 
+                    WHERE ct.don_thuoc_bo_sung_id = ?
+                """, (don_id,))
+            
+            price_details = cur.fetchall()
+            for so_luong, gia_thuoc in price_details:
+                if gia_thuoc and so_luong:
+                    total_amount += float(gia_thuoc) * int(so_luong)
+        finally:
+            conn.close()
+
+        # Cập nhật văn bản chi tiết
+        lines = [f"Đơn ID: {pres['id']}", f"Ngày kê: {pres['ngay_ke']}", f"Bác sĩ kê đơn: {pres['bac_si']}", f"Tổng tiền: {total_amount:,.0f} VND"]
         
         if active_tab == 0:
-            lines.append(f"\nĐã xuất: {'Có' if pres.get('da_xuat') else 'Chưa'}")
+            lines.append(f"Đã xuất: {'Có' if pres.get('da_xuat') else 'Chưa'}")
             if pres.get('ngay_xuat'):
                 lines.append(f"Ngày xuất: {pres.get('ngay_xuat')}")
         else:
-            lines.append(f"\nĐã xuất: {'Có' if pres.get('xuat_thuoc') else 'Chưa'}")
+            lines.append(f"Đã xuất: {'Có' if pres.get('xuat_thuoc') else 'Chưa'}")
+        
+        # Lấy chi tiết thuốc
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            if active_tab == 0:
+                cur.execute("""
+                    SELECT ten_thuoc, so_luong, don_vi, sang, trua, chieu, toi, lieu_dung, ghi_chu 
+                    FROM chi_tiet_don_thuoc 
+                    WHERE don_thuoc_id = ?
+                """, (don_id,))
+            else:
+                cur.execute("""
+                    SELECT ten_thuoc, so_luong, don_vi, sang, trua, chieu, toi, lieu_dung, ghi_chu 
+                    FROM chi_tiet_don_thuoc_bo_sung 
+                    WHERE don_thuoc_bo_sung_id = ?
+                """, (don_id,))
+            
+            drug_details = cur.fetchall()
+            
+            if drug_details:
+                lines.append("\nCHI TIẾT THUỐC:")
+                for drug in drug_details:
+                    ten_thuoc, so_luong, don_vi, sang, trua, chieu, toi, lieu_dung, ghi_chu = drug
+                    lines.append(f"- {ten_thuoc}: {so_luong} {don_vi or ''}")
+                    
+                    # Liều dùng
+                    lieu_info = []
+                    if sang and sang.strip(): lieu_info.append(f"Sáng: {sang.strip()}")
+                    if trua and trua.strip(): lieu_info.append(f"Trưa: {trua.strip()}")
+                    if chieu and chieu.strip(): lieu_info.append(f"Chiều: {chieu.strip()}")
+                    if toi and toi.strip(): lieu_info.append(f"Tối: {toi.strip()}")
+                    
+                    if lieu_info:
+                        lines.append(f"  Liều dùng: {' | '.join(lieu_info)}")
+                    
+                    # Hướng dẫn sử dụng chung
+                    if lieu_dung and lieu_dung.strip():
+                        lines.append(f"  Hướng dẫn: {lieu_dung.strip()}")
+                    
+                    # Ghi chú
+                    if ghi_chu and ghi_chu.strip():
+                        lines.append(f"  Ghi chú: {ghi_chu.strip()}")
+                    
+                    lines.append("")  # Dòng trống giữa các thuốc
+        finally:
+            conn.close()
         
         self.detail.setPlainText('\n'.join(lines))
 
@@ -216,7 +378,7 @@ class QuanLyXuatThuoc(QWidget):
             cur.execute("SELECT ma_thuoc, ten_thuoc, don_vi, ton_kho FROM danh_muc_thuoc ORDER BY ten_thuoc")
             drugs = cur.fetchall()
             
-            # Build a dict of drug names in current prescription for quick lookup
+            # Xây dựng dict tên thuốc trong đơn hiện tại để tra nhanh
             drug_in_pres = {}
             if hasattr(self, 'current_prescription'):
                 for item in self.current_prescription.get('items', []):
@@ -261,8 +423,15 @@ class QuanLyXuatThuoc(QWidget):
             if row < 0:
                 QMessageBox.warning(self, "Chọn đơn", "Vui lòng chọn một đơn thuốc để xuất.")
                 return
-            don_id = int(self.table.item(row, 0).text())
-            status_text = self.table.item(row, 4).text()
+            # don_id được lưu trong Qt.UserRole của ô 'Ngày kê'
+            date_item = self.table.item(row, 0)
+            try:
+                don_id = int(date_item.data(Qt.UserRole))
+            except Exception:
+                QMessageBox.critical(self, "Lỗi", "Không tìm thấy ID đơn trên hàng đã chọn.")
+                return
+            # Status now in column 3
+            status_text = self.table.item(row, 3).text()
             if status_text and status_text == "Đã xuất":
                 QMessageBox.information(self, "Đã xuất", "Đơn này đã được xuất trước đó.")
                 return
@@ -324,8 +493,15 @@ class QuanLyXuatThuoc(QWidget):
             if row < 0:
                 QMessageBox.warning(self, "Chọn đơn", "Vui lòng chọn một đơn thuốc bổ sung để xuất.")
                 return
-            don_id = int(self.table_bo_sung.item(row, 0).text())
-            status_text = self.table_bo_sung.item(row, 4).text()
+            # don_id được lưu trong Qt.UserRole của ô 'Ngày kê' (bảng bổ sung)
+            date_item = self.table_bo_sung.item(row, 0)
+            try:
+                don_id = int(date_item.data(Qt.UserRole))
+            except Exception:
+                QMessageBox.critical(self, "Lỗi", "Không tìm thấy ID đơn trên hàng đã chọn.")
+                return
+            # Status now in column 3 for supplementary table
+            status_text = self.table_bo_sung.item(row, 3).text()
             if status_text and status_text == "Đã xuất":
                 QMessageBox.information(self, "Đã xuất", "Đơn bổ sung này đã được xuất trước đó.")
                 return

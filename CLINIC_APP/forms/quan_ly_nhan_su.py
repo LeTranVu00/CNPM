@@ -22,12 +22,12 @@ class QuanLyNhanSu(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         
-        # Title
+        # Tiêu đề
         lbl_title = QLabel("QUẢN LÝ NHÂN SỰ")
         lbl_title.setStyleSheet("font-weight: bold; font-size: 14pt; color: #1565c0;")
         layout.addWidget(lbl_title)
         
-        # Search bar
+        # Thanh tìm kiếm
         search_layout = QHBoxLayout()
         lbl_search = QLabel("Tìm kiếm:")
         self.search_input = QLineEdit()
@@ -36,7 +36,7 @@ class QuanLyNhanSu(QWidget):
         self.search_input.textChanged.connect(self.filter_staff)
         search_layout.addWidget(lbl_search)
         search_layout.addWidget(self.search_input)
-        # Role filter
+        # Bộ lọc chức vụ
         self.role_filter = QComboBox()
         self.role_filter.addItem("Tất cả")
         self.role_filter.addItem("Bác sĩ")
@@ -47,7 +47,7 @@ class QuanLyNhanSu(QWidget):
         search_layout.addStretch()
         layout.addLayout(search_layout)
         
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         btn_add = QPushButton("➕ Thêm nhân viên")
         btn_add.clicked.connect(self.open_add_dialog)
@@ -62,7 +62,7 @@ class QuanLyNhanSu(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
         
-        # Table
+        # Bảng dữ liệu
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Tên", "Chức Vụ", "Phòng Khám"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -78,9 +78,11 @@ class QuanLyNhanSu(QWidget):
         self.table.setColumnWidth(1, 120)
         
         layout.addWidget(self.table)
-        # Listen for global user_created signal to refresh staff list when accounts are created
+        # Lắng nghe signal toàn cục `user_created` để làm mới danh sách khi tài khoản được tạo
         try:
             app_signals.user_created.connect(lambda u, r, f: self.load_staff())
+            # Ngoài ra lắng nghe các thay đổi dữ liệu chung (xóa/sửa tài khoản)
+            app_signals.data_changed.connect(self.load_staff)
         except Exception:
             pass
     
@@ -88,23 +90,16 @@ class QuanLyNhanSu(QWidget):
         """Tải danh sách nhân sự từ bảng users trong database."""
         self.table.setRowCount(0)
         try:
+            # Load staff from `nhan_su` table so phòng_kham được hiển thị khi thêm/sửa
             conn = get_connection()
             cursor = conn.cursor()
             role = self.role_filter.currentText() if hasattr(self, 'role_filter') else 'Tất cả'
-            
-            # Map role filter to database role names
-            role_mapping = {
-                'Tất cả': None,
-                'Bác sĩ': 'bac_si',
-                'Tiếp tân': 'tiep_tan',
-                'Dược sĩ': 'duoc_si'
-            }
-            db_role = role_mapping.get(role)
-            
-            if db_role:
-                cursor.execute("SELECT id, username, full_name, role FROM users WHERE role = ? ORDER BY username", (db_role,))
+
+            if role and role != 'Tất cả':
+                cursor.execute("SELECT id, ten, chuc_vu, phong_kham FROM nhan_su WHERE chuc_vu = ? ORDER BY ten", (role,))
             else:
-                cursor.execute("SELECT id, username, full_name, role FROM users ORDER BY username")
+                cursor.execute("SELECT id, ten, chuc_vu, phong_kham FROM nhan_su ORDER BY ten")
+
             rows = cursor.fetchall()
             conn.close()
 
@@ -112,21 +107,15 @@ class QuanLyNhanSu(QWidget):
                 row_pos = self.table.rowCount()
                 self.table.insertRow(row_pos)
 
-                # Full name (or username if no full_name) - stores ID in UserRole
-                name_item = QTableWidgetItem(row[2] or row[1] or "")
+                # Tên đầy đủ - lưu ID vào UserRole
+                name_item = QTableWidgetItem(row[1] or "")
                 name_item.setData(Qt.UserRole, row[0])
                 self.table.setItem(row_pos, 0, name_item)
 
-                # Role mapping for display
-                role_display = {
-                    'bac_si': 'Bác sĩ',
-                    'tiep_tan': 'Tiếp tân',
-                    'duoc_si': 'Dược sĩ',
-                    'admin': 'Admin',
-                    'user': 'User'
-                }
-                self.table.setItem(row_pos, 1, QTableWidgetItem(role_display.get(row[3], row[3] or "")))
-                self.table.setItem(row_pos, 2, QTableWidgetItem(""))  # phong_kham trống vì users không có trường này
+                # Chức vụ (lưu trực tiếp từ nhan_su.chuc_vu)
+                self.table.setItem(row_pos, 1, QTableWidgetItem(row[2] or ""))
+                # Phòng khám
+                self.table.setItem(row_pos, 2, QTableWidgetItem(row[3] or ""))
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể tải danh sách: {e}")
     
@@ -242,7 +231,7 @@ class StaffDialog(QDialog):
         lbl_title.setStyleSheet("font-weight: bold; font-size: 12pt; color: #1565c0;")
         layout.addRow(lbl_title)
 
-        # Input fields
+        # Các ô nhập
         self.input_ten = QLineEdit()
         self.input_ten.setText(ten)
         self.input_ten.setPlaceholderText("Ví dụ: Nguyễn Văn A")
@@ -258,10 +247,10 @@ class StaffDialog(QDialog):
 
         self.input_phong_kham = QLineEdit()
         self.input_phong_kham.setText(phong_kham)
-        self.input_phong_kham.setPlaceholderText("Ví dụ: Phòng khám số 1")
+        self.input_phong_kham.setPlaceholderText("Tên phòng khám (tùy chọn)")
         layout.addRow("Phòng Khám:", self.input_phong_kham)
 
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         btn_ok = QPushButton("Lưu")
         btn_ok.clicked.connect(self.accept)

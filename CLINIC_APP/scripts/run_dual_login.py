@@ -11,7 +11,7 @@ def run_dual_login():
     python_executable = os.path.join(os.environ['LOCALAPPDATA'], "Programs", "Python", "Python312", "python.exe")
 
     # Đường dẫn đến file main.py
-    app_path = os.path.abspath("c:/clinic_app/main.py")
+    app_path = os.path.abspath("C:/CNPM/CLINIC_APP/main.py")
 
     # Chạy hai tiến trình với các tham số khác nhau
     try:

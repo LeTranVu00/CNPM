@@ -170,7 +170,7 @@ class NhapGhiChuDialog(QDialog):
 
     def accept_note(self):
         self.note = self.text_edit.toPlainText()
-        # Accept even if empty so user can clear note intentionally
+        # Chấp nhận ngay cả khi rỗng để người dùng có thể xóa ghi chú theo ý
         if self.note is not None:
             self.accept()
 
@@ -213,7 +213,7 @@ class PrescriptionDetailDialog(QDialog):
             ngay_ke = bac_si = nguoilap = loi_dan = phieu_kham = chan_doan = None
             if dt:
                 ngay_ke, bac_si, nguoilap, loi_dan, phieu_kham, chan_doan = dt
-            # try to get so_phieu
+            # Cố gắng lấy số phiếu
             so_phieu = ''
             if phieu_kham:
                 cursor.execute("SELECT so_phieu FROM phieu_kham WHERE id = ?", (phieu_kham,))
@@ -226,7 +226,7 @@ class PrescriptionDetailDialog(QDialog):
             if chan_doan:
                 info += f"\nChẩn đoán: {chan_doan}"
             self.info_label.setText(info)
-            # load details
+            # tải chi tiết
             cursor.execute("""
                 SELECT ct.ma_thuoc, dm.ten_thuoc, ct.so_luong, ct.don_vi, ct.lieu_dung, ct.ghi_chu
                 FROM chi_tiet_don_thuoc ct
@@ -296,7 +296,7 @@ class DonThuocKhac(QWidget):
         self.load_patients()
         self.load_bacsi_list()
         self.load_nguoilap_list()
-        # subscribe to app-wide patient selection so other forms can update this form
+        # Đăng ký nhận sự kiện chọn bệnh nhân toàn ứng dụng để các form khác có thể cập nhật
         try:
             app_signals.patient_selected.connect(self.auto_select_patient)
         except Exception:
@@ -312,7 +312,7 @@ class DonThuocKhac(QWidget):
 
         # ======= THÔNG TIN ĐƠN THUỐC =======
         group_info = QGroupBox("THÔNG TIN ĐƠN THUỐC")
-        # Use default black for group titles so text appears standard/neutral
+        # Dùng màu đen mặc định cho tiêu đề nhóm để văn bản trông chuẩn và trung tính
         group_info.setStyleSheet("QGroupBox { font-weight: bold; color: #000000; }")
         grid = QGridLayout()
 
@@ -453,7 +453,7 @@ class DonThuocKhac(QWidget):
             ghi_chu.setForeground(Qt.gray)
             self.table_thuoc.setItem(row, 0, ma_thuoc)
             self.table_thuoc.setItem(row, 1, ten_thuoc)
-            # Unit combo for column 3 (arrow-only until a choice is made)
+            # Combobox đơn vị cho cột 3 (chỉ hiện mũi tên cho đến khi người dùng chọn)
             unit_combo = self._make_unit_combo()
             self.table_thuoc.setCellWidget(row, 3, unit_combo)
             self.table_thuoc.setItem(row, 8, lieu_dung)
@@ -480,13 +480,13 @@ class DonThuocKhac(QWidget):
         header.setSectionResizeMode(3, QHeaderView.Fixed)
         self.table_thuoc.setColumnWidth(3, 140)
 
-        # Make table expand horizontally but keep vertical size fixed
+        # Cho phép bảng mở rộng theo chiều ngang nhưng giữ chiều cao cố định
         self.table_thuoc.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # Keep cell double-click behavior
+        # Giữ nguyên hành vi double-click trên ô
         self.table_thuoc.cellDoubleClicked.connect(self.handle_cell_double_click)
         
-        # Add table to main layout
+        # Thêm bảng vào layout chính
         main_layout.addWidget(self.table_thuoc)
 
         # ======= LỜI DẶN =======
@@ -516,7 +516,7 @@ class DonThuocKhac(QWidget):
 
         # ======= NÚT CHỨC NĂNG =======
         btn_layout = QHBoxLayout()
-        # Keep references to important buttons so we can attach behavior
+        # Giữ tham chiếu tới các nút quan trọng để gắn hành vi
         self.btns = {}
         for text in [
             "Nhập mới (F1)", "Lưu (F2)", "In đơn", "Bỏ qua", "Sửa",
@@ -527,10 +527,10 @@ class DonThuocKhac(QWidget):
             btn.setStyleSheet("background-color: #0078D7; color: white; border-radius: 4px; padding: 6px 12px; }")
             btn_layout.addWidget(btn)
             self.btns[text] = btn
-        # Connect reload button
+        # Kết nối nút Tải lại
         if "Tải lại" in self.btns:
             self.btns["Tải lại"].clicked.connect(self._handle_reload_clicked)
-        # Connect key functional buttons
+        # Kết nối các nút chức năng chính
         try:
             if "Nhập mới (F1)" in self.btns:
                 self.btns["Nhập mới (F1)"].clicked.connect(self.on_nhapmoi_bo_sung)
@@ -580,7 +580,7 @@ class DonThuocKhac(QWidget):
             self.benhnhan.clear()
             self.benhnhan.addItem("--- Chọn bệnh nhân ---")
             for id, name, ngaysinh, gioitinh, tuoi, dienthoai, so_cccd, diachi, doituong, record in patients:
-                # Build a distinguishing display string (name — Mã:HSxxx or ID:nn — phone / cccd / yyyy)
+                # Tạo chuỗi hiển thị phân biệt (tên — Mã:HSxxx hoặc ID:nn — điện thoại / cccd / yyyy)
                 display_name = name
                 extras = []
                 if dienthoai:
@@ -593,15 +593,15 @@ class DonThuocKhac(QWidget):
                         extras.append(yyyy)
                     except Exception:
                         pass
-                # Prefer showing ma_hoso if available because it's human-friendly
+                # Ưu tiên hiển thị ma_hoso nếu có vì thân thiện với người dùng
                 if record:
                     display_name += f" — Mã:{record}"
                 else:
                     display_name += f" — ID:{id}"
                 if extras:
                     display_name += f" — {' / '.join(extras)}"
-                # Add user data as the second positional argument to ensure it's stored in Qt.UserRole
-                # Keep storing rich patient metadata as the item's userData so other handlers can use it
+                # Thêm dữ liệu người dùng làm tham số thứ hai để đảm bảo lưu trong Qt.UserRole
+                # Giữ metadata bệnh nhân chi tiết trong userData để handler khác có thể dùng
                 self.benhnhan.addItem(display_name, {
                     'id': id,
                     'ngaysinh': ngaysinh,
@@ -615,7 +615,7 @@ class DonThuocKhac(QWidget):
         except Exception as e:
             print(f"Lỗi load bệnh nhân: {e}")
         
-        # Auto-select last patient if no specific patient was passed
+        # Tự động chọn bệnh nhân cuối nếu không truyền ID cụ thể
         if not self.benh_nhan_id:
             try:
                 import signals as sig_module
@@ -631,7 +631,7 @@ class DonThuocKhac(QWidget):
             cursor = conn.cursor()
             cursor.execute("SELECT DISTINCT bac_si FROM don_thuoc WHERE bac_si IS NOT NULL")
             rows = cursor.fetchall()
-            # inspect don_thuoc columns so we can compute status reliably across schemas
+            # Kiểm tra cột trong don_thuoc để tính trạng thái chính xác trên các schema khác nhau
             try:
                 cursor.execute("PRAGMA table_info('don_thuoc')")
                 cols_info = cursor.fetchall()
@@ -704,12 +704,12 @@ class DonThuocKhac(QWidget):
             if patient:
                 gioi_tinh, ngay_sinh, tuoi, dia_chi, dien_thoai = patient
                 self.gioitinh.setText(str(gioi_tinh) if gioi_tinh else "")
-                # Try to parse several possible date formats to a QDate
+                    # Thử phân tích nhiều định dạng ngày khác nhau sang QDate
                 if ngay_sinh:
                     try:
-                        # If already a QDate-like string in ISO format
+                                # Nếu đã là chuỗi ngày theo định dạng ISO
                         if isinstance(ngay_sinh, str):
-                            # common formats: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS
+                            # Các định dạng thường gặp: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS
                             parsed = None
                             try:
                                 parsed = QDate.fromString(ngay_sinh, "yyyy-MM-dd")
@@ -728,7 +728,7 @@ class DonThuocKhac(QWidget):
                 self.dienthoai.setText(dien_thoai or "")
 
             # Load số hồ sơ, số phiếu, chẩn đoán, dị ứng
-            # First try to get ma_hoso from tiep_don
+            # Trước tiên cố gắng lấy ma_hoso từ tiep_don
             ma_hoso = ""
             cursor.execute("""
                 SELECT ma_hoso FROM tiep_don 
@@ -738,11 +738,11 @@ class DonThuocKhac(QWidget):
             r = cursor.fetchone()
             if r:
                 ma_hoso = r[0]
-                # set text now and again at end of event loop to avoid being overwritten by other handlers
+                # Đặt text ngay và lặp lại vào cuối vòng lặp sự kiện để tránh bị ghi đè bởi handler khác
                 self.sohoso.setText(ma_hoso or "")
                 QTimer.singleShot(0, lambda m=ma_hoso: self.sohoso.setText(m or ""))
             
-            # Now get latest phieu_kham and chi_tiet_phieu_kham for this patient
+            # Lấy phieu_kham và chi_tiet_phieu_kham mới nhất cho bệnh nhân này
             cursor.execute("""
                 SELECT pk.id, pk.so_phieu, ct.chan_doan, ct.di_ung_thuoc
                 FROM phieu_kham pk
@@ -832,6 +832,7 @@ class DonThuocKhac(QWidget):
             cursor = conn.cursor()
             # inspect table columns so we can compute status reliably across schemas
             cursor.execute("PRAGMA table_info('don_thuoc')")
+            # Kiểm tra cấu trúc bảng để tính trạng thái một cách đáng tin cậy giữa các schema
             cols_info = cursor.fetchall()
             # Robustly load latest ma_hoso and phieu_kham/so_phieu for this patient.
             try:
@@ -900,11 +901,11 @@ class DonThuocKhac(QWidget):
             rows = cursor.fetchall()
             self.table_ds.setRowCount(0)
             for r, rec in enumerate(rows):
-                # rec may contain extra columns depending on schema
+                # Bản ghi có thể chứa các cột phụ thuộc vào schema
                 dt_id = rec[0]
                 ngay_ke = rec[1]
                 so_phieu = rec[2] if len(rec) > 2 else ''
-                # compute status
+                # Tính trạng thái
                 status_parts = []
                 extra_vals = rec[3:]
                 extra_names = []
@@ -921,7 +922,7 @@ class DonThuocKhac(QWidget):
                 if extra_map.get('trang_thai'):
                     st = str(extra_map.get('trang_thai'))
                     l = st.lower()
-                    # detect exported mention in trang_thai
+                    # Kiểm tra xem trang_thai có đề cập tới việc đã xuất thuốc hay không
                     if any(x in l for x in ('xuất', 'xuat', 'đã xuất', 'da xuat')):
                         if 'Đã xuất thuốc' not in status_parts:
                             status_parts.append('Đã xuất thuốc')
@@ -943,7 +944,7 @@ class DonThuocKhac(QWidget):
                 self.table_ds.setItem(r, 1, item_so)
                 self.table_ds.setItem(r, 2, item_trangthai)
                 btn = QPushButton("Xem")
-                # Store callback without recursive closure to avoid recursion error
+                # Lưu callback mà không dùng closure đệ quy để tránh lỗi đệ quy
                 btn.prescription_id = dt_id
                 btn.clicked.connect(lambda: self.on_view_prescription(btn.prescription_id))
                 self.table_ds.setCellWidget(r, 3, btn)
@@ -965,7 +966,7 @@ class DonThuocKhac(QWidget):
             if pid:
                 self.load_prescriptions_list(pid)
             else:
-                # no patient selected, clear the list
+                # Không có bệnh nhân được chọn, xóa danh sách
                 self.table_ds.setRowCount(0)
         except Exception as e:
             QMessageBox.warning(self, "Lỗi", f"Không thể tải lại danh sách: {e}")

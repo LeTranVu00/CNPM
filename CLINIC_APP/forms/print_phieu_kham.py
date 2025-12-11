@@ -168,7 +168,7 @@ def generate_phieu_kham_pdf(data, output_path):
     ]))
     story.append(bs_info)
     
-    # Build PDF document
+    # Tạo tài liệu PDF
     doc.build(story)
 
 def print_phieu_kham(phieu_data, output_dir="output"):

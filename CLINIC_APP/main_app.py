@@ -154,7 +154,7 @@ class MainApp(QMainWindow):
             sidebar_layout.addWidget(self.btn_tiepdon)
 
         # Thêm nút Quản lý đặt lịch
-        if self.role in ['admin', 'bac_si', 'tiep_tan']:
+        if self.role in ['admin', 'bac_si', 'tiep_tan', 'duoc_si']:
             sidebar_layout.addWidget(self.btn_quanly_dat_lich)
         
         # Bác sĩ và Admin có nút Chỉ định dịch vụ và Lập phiếu khám

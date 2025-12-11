@@ -118,7 +118,7 @@ def generate_chi_dinh_pdf(data, output_path):
         """
         try:
             v = float(x)
-            # If value is less than 1000, assume it's expressed in thousands (e.g. 50 -> 50.000)
+            # Nếu giá trị nhỏ hơn 1000, giả sử nó được biểu diễn theo nghìn (ví dụ 50 -> 50.000)
             if abs(v) < 1000:
                 v = v * 1000
             return "{:,.0f}".format(v).replace(',', '.')
@@ -140,14 +140,14 @@ def generate_chi_dinh_pdf(data, output_path):
     t = Table(dv_data, colWidths=[0.5*inch, 3*inch, 1*inch, 1.2*inch, 1.2*inch])
     t.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), normal_font),
-        ('FONTNAME', (0,0), (-1,0), bold_font),  # Header row in bold
+        ('FONTNAME', (0,0), (-1,0), bold_font),  # Dòng tiêu đề in đậm
         ('FONTSIZE', (0,0), (-1,-1), 12),
-        ('ALIGN', (0,0), (0,-1), 'CENTER'),  # STT centered
-        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),  # Numbers right-aligned
-        ('ALIGN', (1,0), (1,-1), 'LEFT'),  # Tên dịch vụ left-aligned
+        ('ALIGN', (0,0), (0,-1), 'CENTER'),  # STT căn giữa
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),  # Các số căn phải
+        ('ALIGN', (1,0), (1,-1), 'LEFT'),  # Tên dịch vụ căn trái
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-2), 0.25, colors.black),
-        ('LINEBELOW', (3,-1), (-1,-1), 0.25, colors.black),  # Underline tổng tiền
+        ('LINEBELOW', (3,-1), (-1,-1), 0.25, colors.black),  # Gạch chân tổng tiền
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 3),
@@ -185,7 +185,7 @@ def generate_chi_dinh_pdf(data, output_path):
     ]))
     story.append(bs_info)
     
-    # Build PDF document
+    # Tạo tài liệu PDF
     doc.build(story)
 
 def print_chi_dinh(phieu_data, output_dir="output"):

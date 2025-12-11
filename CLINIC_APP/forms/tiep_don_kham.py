@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QGridLayout, QGroupBox, QSplitter, QHeaderView, QCompleter,
     QTableWidgetItem, QMessageBox, QAbstractItemView
 )
-# PDF generation
+# Sinh file PDF
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -63,7 +63,7 @@ class TiepDonKham(QWidget):
             logging.info(f"[TiepDonKham] Using database file: {DB_NAME}")
         except Exception as e:
             logging.error(f"[TiepDonKham] Error getting DB_NAME: {e}")
-        # Load data and prepare UI
+        # Tải dữ liệu và chuẩn bị giao diện
         self.load_benh_nhan_list() # Load danh sách bệnh nhân vào combobox
         self.reset_form() # Khởi đầu reset form
         self.connect_combobox_event() # Kết nối sự kiện chọn combobox
@@ -105,7 +105,7 @@ class TiepDonKham(QWidget):
             display = name
             # ưu tiên hiển thị mã hồ sơ để dễ phân biệt (mã HSxxx). Nếu chưa có ma_hoso, hiển thị id nội bộ
             if ma_hoso:
-                # ma_hoso may be None — use it when present
+                # ma_hoso có thể là None — sử dụng khi có giá trị
                 display += f" — Mã:{ma_hoso}"
             else:
                 display += f" — ID:{pid}"
@@ -308,9 +308,7 @@ class TiepDonKham(QWidget):
         self.phongkham.addItem("-Nhấn để chọn-")
         self.phongkham.model().item(0).setFlags(Qt.NoItemFlags)
         self.phongkham.addItems([
-            "Phòng Khám Nội tổng quát", "Phòng Khám Ngoại", "Phòng Tai - Mũi - Họng",
-            "Phòng Mắt", "Phòng Răng - Hàm - Mặt", "Phòng Da liễu",
-            "Phòng Sản - Phụ khoa", "Phòng Nhi", "Phòng Khám Đông y"
+            "Phòng 1", "Phòng 2", "Phòng 3", "Phòng 4"
         ])
         grid2.addWidget(self.phongkham, 1, 1)
 
@@ -1528,7 +1526,7 @@ class TiepDonKham(QWidget):
             try:
                 self.tableTiepDon.selectRow(row)
             except Exception:
-                # fallback to setCurrentCell if selectRow not available
+                # Dự phòng: dùng setCurrentCell nếu selectRow không khả dụng
                 try:
                     self.tableTiepDon.setCurrentCell(row, 0)
                 except Exception:
@@ -1647,7 +1645,7 @@ class TiepDonKham(QWidget):
             except Exception as e:
                 print("❌ Lỗi khi load tiếp đón:", e)
 
-            # Emit patient_selected so other forms can react
+            # Phát tín hiệu patient_selected để các form khác phản ứng
             try:
                 pid = data.get('id') or data.get('ID') or None
                 if pid:
@@ -1696,7 +1694,7 @@ class TiepDonKham(QWidget):
             self.loaikham.setCurrentText(data.get("loai_kham", "Khám và tư vấn"))
             self.hoten.setFocus()
 
-            # Load latest tiep_don record for this patient
+            # Tải bản ghi `tiep_don` mới nhất cho bệnh nhân này
             conn = get_connection()
             cur = conn.cursor()
             cur.execute("SELECT * FROM tiep_don WHERE benh_nhan_id = ? ORDER BY ngay_tiep_don DESC LIMIT 1", (pid,))
@@ -1747,7 +1745,7 @@ class TiepDonKham(QWidget):
         
     
     # ---------------------------
-    # Handlers for controlled loading from combobox/completer
+    # Các hàm xử lý việc tải có kiểm soát từ combobox/completer
     # ---------------------------
     def on_completer_activated(self, text):
         """Called when user selects a name from the completer list (explicit selection)."""
@@ -1780,24 +1778,24 @@ class TiepDonKham(QWidget):
                 return
 
             model = self.completer.model()
-            # Prefer QStringListModel.stringList() when available
+            # Ưu tiên dùng QStringListModel.stringList() khi có
             try:
                 names = model.stringList()
             except Exception:
-                # Fallback: collect via model index
+                # Dự phòng: lấy dữ liệu qua model index
                 names = [model.data(model.index(i, 0)) for i in range(model.rowCount())]
 
-            # Only auto-load when the entered text exactly matches a FULL display item
-            # (i.e., one that includes ID and we can retrieve the itemData). This
-            # prevents accidentally loading an existing patient when the user is
-            # typing a new patient with the same name.
+            # Chỉ tự động tải khi văn bản nhập khớp chính xác một mục hiển thị đầy đủ
+            # (ví dụ: mục bao gồm ID và ta có thể lấy itemData).
+            # Điều này tránh vô tình tải bệnh nhân đã có khi người dùng
+            # đang gõ một bệnh nhân mới có cùng tên.
             exact_idx = self.hoten.findText(text.strip(), Qt.MatchExactly)
             if exact_idx >= 0:
                 pid = self.hoten.itemData(exact_idx, Qt.UserRole)
                 if pid:
                     return self.load_patient_by_id(pid)
 
-            # Otherwise do NOT auto-load — user may be entering a new patient
+            # Nếu không thì KHÔNG tự động tải — người dùng có thể đang nhập bệnh nhân mới
             return
         except Exception as e:
             print("❌ Lỗi on_editing_finished:", e)
@@ -1806,7 +1804,7 @@ class TiepDonKham(QWidget):
     # Kết nối sự kiện khi chọn tên từ combobox
     # ---------------------------
     def connect_combobox_event(self):
-        # Remove any existing connections to avoid duplicate calls
+        # Ngắt mọi kết nối hiện có để tránh gọi trùng lặp
         try:
             self.hoten.currentTextChanged.disconnect()
         except Exception:
@@ -1816,13 +1814,13 @@ class TiepDonKham(QWidget):
         except Exception:
             pass
 
-        # Only load when user explicitly selects from completer
+        # Chỉ tải khi người dùng chọn rõ ràng từ completer
         try:
             self.completer.activated.connect(self.on_completer_activated)
         except Exception as e:
             print("⚠️ Không thể kết nối completer.activated:", e)
 
-        # When editing finished, only load if exact match
+        # Khi hoàn tất chỉnh sửa, chỉ tải nếu khớp chính xác
         try:
             self.hoten.lineEdit().editingFinished.connect(self.on_editing_finished)
         except Exception as e:
@@ -1878,9 +1876,9 @@ class TiepDonKham(QWidget):
         
         # Sau khi load xong, clear selection để không highlight hàng đầu mặc định
         try:
-            # bỏ chọn mọi ô (xóa selection và current cell nếu có)
+                # bỏ chọn mọi ô (xóa selection và current cell nếu có)
             self.tableTiepDon.clearSelection()
-            # setCurrentCell(-1,-1) may raise on some PyQt versions, ignore failures
+                # setCurrentCell(-1,-1) có thể gây lỗi trên một số phiên bản PyQt, bỏ qua nếu lỗi
             try:
                 self.tableTiepDon.setCurrentCell(-1, -1)
             except Exception:

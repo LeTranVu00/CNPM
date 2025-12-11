@@ -11,7 +11,7 @@ from database import get_connection
 from functools import partial
 import logging
 
-# Module logger
+# Bộ ghi log của module
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +23,7 @@ class TaoPhieuKham(QWidget):
         self.parent = parent
         # Khởi tạo các action chính
         self.create_actions()
-        # Global stylesheet
+        # Stylesheet toàn cục
         style = """
                 QGroupBox {
                     border: 1px solid #0078D7;
@@ -99,10 +99,10 @@ class TaoPhieuKham(QWidget):
                 }
             """
         self.setStyleSheet(style)
-        self.initUI()  # Match tiep_don_kham.py naming
-        self.load_benh_nhan_list()  # Match tiep_don_kham.py naming
+        self.initUI()  # Khớp tên hàm với tiep_don_kham.py
+        self.load_benh_nhan_list()  # Khớp tên hàm với tiep_don_kham.py
         
-        # Initialize ICD10 data
+        # Khởi tạo dữ liệu ICD10
         self.all_icd10_data = []
         self.selected_icd10_codes = []
         self.load_icd10_list()  # Load ICD10 data
@@ -159,7 +159,7 @@ class TaoPhieuKham(QWidget):
         self.btn_thoat = QPushButton("Thoát") 
         self.btn_thoat.clicked.connect(self.close)
 
-        # Style cho các nút: blue theme matching tiep_don_kham.py
+        # Style cho các nút: giao diện màu xanh phù hợp với tiep_don_kham.py
         button_style = """
             QPushButton {
                 background-color: #0078D7;

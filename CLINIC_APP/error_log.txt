@@ -6,3 +6,18 @@
 2025-12-10 21:52:54,283 INFO [save_tiep_don] SQL: INSERT INTO tiep_don (ma_hoso, benh_nhan_id, ngay_tiep_don, phong_kham, bac_si_kham, tinh_trang, nv_tiepdon, huyet_ap, nhiet_do, chieu_cao, can_nang, nhip_tho, nhip_tim) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) | VALUES: ['HS001', 1, '2025-12-10', 'Phòng Tai - M\u0169i - H\u1ecdng', 'BS. Tr\u1ea7n Th\u1ecb B', 'N\u1eb7ng', 'Tr\u1ea7n V\u0103n Hùng', '212', '1212', '221', '212', '212', '122']
 2025-12-10 22:10:33,190 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
 2025-12-10 22:10:36,556 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 22:46:44,963 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 22:46:56,179 INFO [save_tiep_don] SQL: INSERT INTO tiep_don (ma_hoso, benh_nhan_id, ngay_tiep_don, phong_kham, bac_si_kham, tinh_trang, nv_tiepdon, huyet_ap, nhiet_do, chieu_cao, can_nang, nhip_tho, nhip_tim) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) | VALUES: ['HS002', 2, '2025-12-11', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '212', '212', '12', '2121', '122', '121']
+2025-12-11 22:49:45,276 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 22:49:58,633 INFO [save_tiep_don] SQL: INSERT INTO tiep_don (ma_hoso, benh_nhan_id, ngay_tiep_don, phong_kham, bac_si_kham, tinh_trang, nv_tiepdon, huyet_ap, nhiet_do, chieu_cao, can_nang, nhip_tho, nhip_tim) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) | VALUES: ['HS003', 3, '2025-12-11', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '111', '1', '1', '1', '1', '11']
+2025-12-11 23:01:19,214 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:01:39,539 INFO [save_tiep_don] SQL: INSERT INTO tiep_don (ma_hoso, benh_nhan_id, ngay_tiep_don, phong_kham, bac_si_kham, tinh_trang, nv_tiepdon, huyet_ap, nhiet_do, chieu_cao, can_nang, nhip_tho, nhip_tim) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) | VALUES: ['HS004', 4, '2025-12-11', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '-Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn-', '1', '11', '11', '111', '11', '111']
+2025-12-11 23:07:21,561 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:11:10,077 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:15:33,945 INFO [TiepDonKham] Using database file: C:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:15:38,635 INFO [TiepDonKham] Using database file: C:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:15:40,930 INFO [TiepDonKham] Using database file: C:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:16:20,769 INFO [TiepDonKham] Using database file: C:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:29:58,367 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:30:21,537 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db
+2025-12-11 23:48:18,605 INFO [TiepDonKham] Using database file: c:\CNPM\CLINIC_APP\data\clinic.db

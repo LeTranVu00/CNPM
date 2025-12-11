@@ -21,7 +21,7 @@ class XemLichSuXuatThuoc(QWidget):
         header.setStyleSheet('font-weight:bold; font-size:14pt; color:#1565c0')
         layout.addWidget(header)
 
-        # Filter controls
+        # Các điều khiển lọc
         controls = QHBoxLayout()
         lbl_from = QLabel("Từ ngày:")
         self.date_from = QDateEdit()
@@ -48,7 +48,7 @@ class XemLichSuXuatThuoc(QWidget):
         controls.addStretch()
         layout.addLayout(controls)
 
-        # Table of history
+        # Bảng lịch sử
         self.table = QTableWidget(0, 8)
         self.table.setHorizontalHeaderLabels([
             "Đơn ID", "Bác sĩ kê", "Bệnh nhân", "Số CCCD", 
@@ -60,9 +60,9 @@ class XemLichSuXuatThuoc(QWidget):
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.table.setMinimumHeight(400)
         self.table.resizeColumnsToContents()
-        layout.addWidget(self.table, 1)  # Give table stretch factor 1 to fill space
+        layout.addWidget(self.table, 1)  # Đặt hệ số giãn cho bảng là 1 để lấp đầy không gian
 
-        # Action buttons
+        # Các nút hành động
         actions = QHBoxLayout()
         self.btn_export = QPushButton("Xuất Excel")
         self.btn_export.clicked.connect(self.export_to_excel)
@@ -80,7 +80,7 @@ class XemLichSuXuatThuoc(QWidget):
             date_to = self.date_to.date().toString('yyyy-MM-dd')
             
             for row_data in history:
-                # Filter by date range
+                # Lọc theo khoảng ngày
                 thoi_gian = row_data[6]  # thoi_gian_xuat
                 if thoi_gian:
                     date_part = thoi_gian.split(' ')[0]  # Extract date from datetime
@@ -90,8 +90,8 @@ class XemLichSuXuatThuoc(QWidget):
                 r = self.table.rowCount()
                 self.table.insertRow(r)
                 
-                # row_data: id, don_thuoc_id, dac_si, ho_ten_benh_nhan, so_cccd, xuat_boi, thoi_gian_xuat, ghi_chu
-                # Skip ID (row_data[0]) and start from don_thuoc_id
+                # row_data: id, don_thuoc_id, dac_si, ho_ten_benh_nhan, so_cccd, xuat_boi, thoi_gian_xuat, ghi_chu (dữ liệu hàng)
+                # Bỏ qua ID (row_data[0]) và bắt đầu từ don_thuoc_id
                 self.table.setItem(r, 0, QTableWidgetItem(str(row_data[1])))  # đơn ID
                 self.table.setItem(r, 1, QTableWidgetItem(str(row_data[2] or '')))  # bác sĩ
                 self.table.setItem(r, 2, QTableWidgetItem(str(row_data[3] or '')))  # bệnh nhân
@@ -198,17 +198,17 @@ class XemLichSuXuatThuoc(QWidget):
             from openpyxl.styles import Font, PatternFill, Alignment
             from datetime import datetime
             
-            # Create workbook
+            # Tạo workbook
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Lịch sử xuất thuốc"
             
-            # Headers
+            # Tiêu đề cột
             headers = ["Đơn ID", "Bác sĩ kê", "Bệnh nhân", "Số CCCD", 
                       "Xuất bởi", "Thời gian xuất", "Ghi chú"]
             ws.append(headers)
             
-            # Style header
+            # Định dạng tiêu đề
             header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF")
             for cell in ws[1]:
@@ -216,7 +216,7 @@ class XemLichSuXuatThuoc(QWidget):
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             
-            # Data
+            # Dữ liệu
             for row in range(self.table.rowCount()):
                 row_data = []
                 for col in range(self.table.columnCount()):
@@ -224,11 +224,11 @@ class XemLichSuXuatThuoc(QWidget):
                     row_data.append(item.text() if item else "")
                 ws.append(row_data)
             
-            # Adjust column widths
+            # Điều chỉnh độ rộng cột
             for col in range(1, self.table.columnCount() + 1):
                 ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 15
             
-            # Save
+            # Lưu
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"lich_su_xuat_thuoc_{timestamp}.xlsx"
             wb.save(filename)

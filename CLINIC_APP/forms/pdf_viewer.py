@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
-import fitz  # PyMuPDF
+import fitz  # thư viện PyMuPDF
 import os
 
 class PDFViewer(QDialog):

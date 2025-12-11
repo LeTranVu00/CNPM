@@ -21,12 +21,12 @@ class QuanLyLichHen(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         
-        # Title
+        # Tiêu đề
         lbl_title = QLabel("QUẢN LÝ LỊCH HẸN KHÁM")
         lbl_title.setStyleSheet("font-weight: bold; font-size: 14pt; color: #1565c0;")
         layout.addWidget(lbl_title)
         
-        # Filter controls
+        # Các điều khiển lọc
         filter_layout = QHBoxLayout()
         
         lbl_search = QLabel("Tìm kiếm:")
@@ -48,7 +48,7 @@ class QuanLyLichHen(QWidget):
         filter_layout.addStretch()
         layout.addLayout(filter_layout)
         
-        # Action buttons
+        # Các nút hành động
         btn_layout = QHBoxLayout()
         
         btn_confirm = QPushButton("✓ Xác Nhận")
@@ -74,8 +74,8 @@ class QuanLyLichHen(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
         
-        # Table (show phone and address columns)
-        # Columns: Bệnh Nhân, SĐT, Địa chỉ, Ngày Giờ, Bác Sĩ, Loại Khám, Trạng Thái, Ghi Chú, BN_ID
+        # Bảng (hiển thị cột SĐT và địa chỉ)
+        # Các cột: Bệnh Nhân, SĐT, Địa chỉ, Ngày Giờ, Bác Sĩ, Loại Khám, Trạng Thái, Ghi Chú, BN_ID
         self.table = QTableWidget(0, 9)
         self.table.setHorizontalHeaderLabels([
             "Bệnh Nhân", "SĐT", "Địa chỉ", "Ngày Giờ", "Bác Sĩ", 
@@ -87,7 +87,7 @@ class QuanLyLichHen(QWidget):
         self.table.setMinimumHeight(400)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
-        # Hide BN_ID column (for internal use)
+        # Ẩn cột BN_ID (dùng nội bộ)
         self.table.setColumnHidden(8, True)
         
         header = self.table.horizontalHeader()
@@ -129,12 +129,12 @@ class QuanLyLichHen(QWidget):
             for row in rows:
                 row_pos = self.table.rowCount()
                 self.table.insertRow(row_pos)
-                # Store LH id in Qt.UserRole of first column
+                # Lưu LH id vào Qt.UserRole của cột đầu tiên
                 ho_ten_item = QTableWidgetItem(row[1] or "")
                 ho_ten_item.setData(Qt.UserRole, row[0])  # Store LH id invisibly
                 self.table.setItem(row_pos, 0, ho_ten_item)
 
-                # Phone and address
+                # Số điện thoại và địa chỉ
                 self.table.setItem(row_pos, 1, QTableWidgetItem(row[2] or ""))
                 self.table.setItem(row_pos, 2, QTableWidgetItem(row[3] or ""))
 
@@ -142,7 +142,7 @@ class QuanLyLichHen(QWidget):
                 self.table.setItem(row_pos, 4, QTableWidgetItem(row[5] or ""))
                 self.table.setItem(row_pos, 5, QTableWidgetItem(row[6] or ""))
 
-                # Status column with color coding (index 6)
+                # Cột trạng thái với mã màu (chỉ số 6)
                 status_item = QTableWidgetItem(row[7] or "")
                 if row[7] == "đã hủy":
                     status_item.setForeground(self.table.palette().color(self.table.palette().Foreground))
@@ -150,7 +150,7 @@ class QuanLyLichHen(QWidget):
                 self.table.setItem(row_pos, 6, status_item)
 
                 self.table.setItem(row_pos, 7, QTableWidgetItem(row[8] or ""))
-                # Hidden BN_ID (for internal reference)
+                # BN_ID ẩn (tham chiếu nội bộ)
                 self.table.setItem(row_pos, 8, QTableWidgetItem(str(row[9] or "")))
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Không thể tải lịch hẹn: {e}")
@@ -164,7 +164,7 @@ class QuanLyLichHen(QWidget):
             ho_ten = self.table.item(row, 0).text().lower()
             trang_thai = self.table.item(row, 6).text()
             
-            # search also in doctor column (index 4)
+            # Tìm kiếm cả trong cột bác sĩ (chỉ số 4)
             show_search = search_text in ho_ten or search_text in self.table.item(row, 4).text().lower()
             show_status = status_filter == "Tất cả" or trang_thai == status_filter
             
@@ -333,18 +333,18 @@ class RescheduleDialog(QDialog):
         lbl_title.setStyleSheet("font-weight: bold; font-size: 12pt; color: #1565c0;")
         layout.addRow(lbl_title)
         
-        # Display patient name (read-only)
+        # Hiển thị tên bệnh nhân (chỉ đọc)
         lbl_bn = QLabel(ho_ten)
         lbl_bn.setStyleSheet("font-weight: bold; color: #1565c0;")
         layout.addRow("Bệnh nhân:", lbl_bn)
         
-        # New date/time
+        # Ngày/giờ mới
         self.input_ngay_gio = QDateTimeEdit()
         self.input_ngay_gio.setDisplayFormat("yyyy-MM-dd HH:mm")
         self.input_ngay_gio.setDateTime(QDateTime.fromString(ngay_gio, "yyyy-MM-dd HH:mm"))
         layout.addRow("Ngày giờ mới:", self.input_ngay_gio)
         
-        # Doctor selection (editable - can type new values)
+        # Chọn bác sĩ (có thể chỉnh sửa - cho phép nhập giá trị mới)
         self.combo_bac_si = QComboBox()
         self.combo_bac_si.setEditable(True)
         self.load_doctors()
@@ -356,7 +356,7 @@ class RescheduleDialog(QDialog):
                 self.combo_bac_si.setEditText(bac_si)
         layout.addRow("Bác sĩ:", self.combo_bac_si)
         
-        # Visit type selection (editable - can type new values)
+        # Chọn loại khám (có thể chỉnh sửa - cho phép nhập giá trị mới)
         self.combo_loai_kham = QComboBox()
         self.combo_loai_kham.setEditable(True)
         self.load_loai_kham()
@@ -368,13 +368,13 @@ class RescheduleDialog(QDialog):
                 self.combo_loai_kham.setEditText(loai_kham)
         layout.addRow("Loại khám:", self.combo_loai_kham)
         
-        # Notes
+        # Ghi chú
         self.input_ghi_chu = QTextEdit()
         self.input_ghi_chu.setText(ghi_chu)
         self.input_ghi_chu.setMinimumHeight(80)
         layout.addRow("Ghi chú:", self.input_ghi_chu)
         
-        # Buttons
+        # Các nút
         btn_layout = QHBoxLayout()
         btn_ok = QPushButton("Lưu")
         btn_ok.clicked.connect(self.accept)
@@ -400,7 +400,7 @@ class RescheduleDialog(QDialog):
     def load_loai_kham(self):
         """Tải danh sách loại khám."""
         try:
-            # Predefined visit types
+            # Các loại khám định sẵn
             loai_kham_list = ["Khám tư vấn", "Tái khám", "Khám theo yêu cầu"]
             self.combo_loai_kham.addItems(loai_kham_list)
         except Exception:

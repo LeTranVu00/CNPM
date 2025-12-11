@@ -162,7 +162,7 @@ class AdminPanel(QWidget):
         p_layout = QVBoxLayout(self.patients_tab)
         p_layout.setSpacing(6)
 
-        # Search / actions row
+        # Hàng tìm kiếm / các hành động
         search_actions = QHBoxLayout()
         self.patient_search = QLineEdit()
         self.patient_search.setPlaceholderText("Tìm theo tên hoặc số điện thoại...")
@@ -184,10 +184,10 @@ class AdminPanel(QWidget):
         search_actions.addWidget(self.btn_export_patients)
         p_layout.addLayout(search_actions)
 
-        # Splitter: left list, right details
+        # Splitter: danh sách bên trái, chi tiết bên phải
         splitter = QSplitter(Qt.Horizontal)
 
-        # Left: patient list
+        # Bên trái: danh sách bệnh nhân
         self.table_patients = QTableWidget(0, 5)
         self.table_patients.setHorizontalHeaderLabels(["ID", "Họ tên", "Ngày sinh", "Điện thoại", "Địa chỉ"])
         self.table_patients.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -216,7 +216,7 @@ class AdminPanel(QWidget):
         self.table_patients.cellClicked.connect(self.on_patient_selected)
         splitter.addWidget(self.table_patients)
 
-        # Right: patient detail + visits
+        # Bên phải: chi tiết bệnh nhân + lượt khám
         right = QWidget()
         r_layout = QVBoxLayout(right)
         r_layout.setSpacing(6)
@@ -225,13 +225,13 @@ class AdminPanel(QWidget):
         self.detail_title.setStyleSheet("font-weight: bold; color: #0b63a7;")
         r_layout.addWidget(self.detail_title)
 
-        # Formatted detail label
+        # Nhãn chi tiết đã định dạng
         self.lbl_patient_detail = QLabel("Chọn một bệnh nhân để xem chi tiết")
         self.lbl_patient_detail.setWordWrap(True)
         self.lbl_patient_detail.setStyleSheet("background: #f7f9fb; padding: 8px; border: 1px solid #e6eef8;")
         r_layout.addWidget(self.lbl_patient_detail)
 
-        # Visits table
+        # Bảng lượt khám
         visits_actions = QHBoxLayout()
         visits_actions.addStretch()
         self.btn_export_visits = QPushButton("Xuất lượt khám CSV")
@@ -261,7 +261,7 @@ class AdminPanel(QWidget):
         self.role_combo = QComboBox()
         self.role_combo.setEditable(False)
         self.role_combo.addItem("-- Chọn role --")
-        # populate roles from users table
+        # Tải các role từ bảng users
         try:
             conn = get_connection()
             cur = conn.cursor()
@@ -297,7 +297,7 @@ class AdminPanel(QWidget):
 
         tabs.addTab(self.sessions_tab, "Phiên làm việc")
 
-        # Load initial patient list
+        # Tải danh sách bệnh nhân ban đầu
         self.load_patients()
 
     # ---------- Patients helpers ----------
@@ -323,12 +323,12 @@ class AdminPanel(QWidget):
         for idx, r in enumerate(rows, 1):
             row = self.table_patients.rowCount()
             self.table_patients.insertRow(row)
-            # Column 0: STT (sequence number)
+            # Cột 0: STT (số thứ tự)
             stt_item = QTableWidgetItem(str(idx))
             stt_item.setData(Qt.UserRole, r[0])  # Store ID invisibly
             stt_item.setFlags(stt_item.flags() ^ Qt.ItemIsEditable)
             self.table_patients.setItem(row, 0, stt_item)
-            # Columns 1-4: ho_ten, ngay_sinh, dien_thoai, dia_chi
+            # Các cột 1-4: họ tên, ngày sinh, điện thoại, địa chỉ
             for c, v in enumerate(r[1:], 1):
                 item = QTableWidgetItem(str(v) if v is not None else "")
                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
@@ -344,12 +344,12 @@ class AdminPanel(QWidget):
             conn = get_connection()
             cur = conn.cursor()
             try:
-                # Load basic patient info
+                # Tải thông tin cơ bản bệnh nhân
                 cur.execute("SELECT ho_ten, ngay_sinh, dien_thoai, dia_chi, so_cccd FROM benh_nhan WHERE id = ?", (pid,))
                 r = cur.fetchone()
                 if r:
                     ho_ten, ns, dt, dc, cccd = r
-                    # Prepare header detail (basic info)
+                    # Chuẩn bị phần tiêu đề chi tiết (thông tin cơ bản)
                     header_html = (
                         f"<b>ID:</b> {pid}<br>"
                         f"<b>Họ tên:</b> {ho_ten}<br>"
@@ -362,18 +362,18 @@ class AdminPanel(QWidget):
                     self.lbl_patient_detail.setText("Không tìm thấy thông tin bệnh nhân")
                     visits = []
 
-                # Load visits (phieu_kham) and related details (chi_tiet_phieu_kham, don_thuoc)
+                # Tải các lần khám (phieu_kham) và chi tiết liên quan (chi_tiet_phieu_kham, don_thuoc)
                 cur.execute("SELECT id, so_phieu, ngay_lap, bac_si, phong_kham FROM phieu_kham WHERE benh_nhan_id = ? ORDER BY datetime(ngay_lap) DESC", (pid,))
                 pk_rows = cur.fetchall()
                 visits = []
                 for pk in pk_rows:
                     pkid, so_phieu, ngay_lap, bac_si, phong_kham = pk
-                    # latest detail for this visit
+                    # Chi tiết mới nhất cho lần khám này
                     cur.execute("SELECT chan_doan, ket_luan, icd10, di_ung_thuoc, ghi_chu_kham FROM chi_tiet_phieu_kham WHERE phieu_kham_id = ? ORDER BY id DESC LIMIT 1", (pkid,))
                     detail_row = cur.fetchone() or ('', '', '', '', '')
                     chan_doan, ket_luan, icd10, di_ung_thuoc, ghi_chu_kham = detail_row
 
-                    # prescriptions
+                    # Đơn thuốc
                     cur.execute("SELECT id, ngay_ke, so_ngay, ngay_tai_kham, chan_doan, loi_dan FROM don_thuoc WHERE phieu_kham_id = ? ORDER BY ngay_ke DESC", (pkid,))
                     pres_list = []
                     for p in cur.fetchall():
@@ -406,7 +406,7 @@ class AdminPanel(QWidget):
             finally:
                 conn.close()
 
-            # Fill visits table (summary)
+            # Điền bảng lượt khám (tóm tắt)
             self.table_visits.setRowCount(0)
             for vr in visits:
                 r2 = self.table_visits.rowCount()
@@ -417,7 +417,7 @@ class AdminPanel(QWidget):
                     it.setFlags(it.flags() ^ Qt.ItemIsEditable)
                     self.table_visits.setItem(r2, c2, it)
 
-            # Prepare detailed HTML: show basic info + latest visit details and prescriptions
+            # Chuẩn bị HTML chi tiết: hiển thị thông tin cơ bản + chi tiết lần khám mới nhất và đơn thuốc
             detail_html = header_html
             if visits:
                 latest = visits[0]
@@ -427,14 +427,14 @@ class AdminPanel(QWidget):
                 detail_html += f"<b>Kết luận:</b> {latest.get('ket_luan') or '—'}<br>"
                 detail_html += f"<b>Ghi chú khám:</b> {latest.get('ghi_chu_kham') or '—'}<br>"
 
-                # Prescriptions
+                # Các đơn thuốc
                 if latest.get('don_thuoc'):
                     detail_html += "<div style='margin-top:8px; padding:8px; background:#f8f9fb; border:1px solid #e9eef6;'>"
                     for d in latest.get('don_thuoc'):
                         detail_html += f"<div style='margin-bottom:6px;'><small class='text-muted'>Ngày kê: {d.get('ngay_ke') or '—'} — Ngày tái khám: {d.get('ngay_tai_kham') or '—'}</small><br>"
                         detail_html += f"<b>Hướng dẫn:</b> {d.get('loi_dan') or '—'}<ul>"
                         for m in d.get('meds'):
-                            # m: (ten_thuoc, so_luong, sang, trua, chieu, toi, lieu_dung, ghi_chu)
+                            # m: (tên_thuốc, số_lượng, sáng, trưa, chiều, tối, liều_dùng, ghi_chú)
                             ten_thuoc = m[0]
                             so_luong = m[1]
                             lieu = m[6] or ''
@@ -449,7 +449,7 @@ class AdminPanel(QWidget):
             QMessageBox.critical(self, "Lỗi", f"Không thể tải thông tin bệnh nhân:\n{e}")
 
     def export_patients_csv(self):
-        # Ask file path
+        # Hỏi đường dẫn file
         try:
             path, _ = QFileDialog.getSaveFileName(self, "Lưu CSV bệnh nhân", os.path.join(os.getcwd(), "output", "patients.csv"), "CSV Files (*.csv)")
             if not path:

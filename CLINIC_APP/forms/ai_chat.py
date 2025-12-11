@@ -28,7 +28,7 @@ class AIWorker(QThread):
 
     def run(self):
         try:
-            # pass a callback so query_ai can emit retry/status messages
+            # Truyền một callback để `query_ai` có thể phát thông báo thử lại/trạng thái
             resp = query_ai(
                 self.prompt,
                 model=self.model,
@@ -85,7 +85,7 @@ def query_ai(
                     except Exception:
                         wait = delay * (2 ** (attempt - 1))
                 else:
-                    # exponential backoff with small jitter
+                    # Sử dụng exponential backoff kèm jitter nhỏ
                     wait = delay * (2 ** (attempt - 1)) + random.uniform(0, 1)
 
                 if attempt < max_retries:
@@ -120,7 +120,7 @@ def query_ai(
 
 
 # -----------------------
-# Class AIChatDialog giữ nguyên như trước
+# Lớp AIChatDialog giữ nguyên như trước
 # -----------------------
 class AIChatDialog(QDialog):
     def __init__(self, parent=None):

@@ -45,7 +45,7 @@ class QuanLyThuoc(QWidget):
     def init_db(self):
         conn = get_connection()
         cur = conn.cursor()
-        # Ensure payments table exists
+        # Đảm bảo bảng `thanh_toan` tồn tại
         cur.execute("""
             CREATE TABLE IF NOT EXISTS thanh_toan (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +68,7 @@ class QuanLyThuoc(QWidget):
         tab1 = QWidget()
         tab1_layout = QVBoxLayout(tab1)
         
-        # Top: simple tabs-like layout using two panels stacked vertically
+        # Phần trên: bố cục giống tabs đơn giản sử dụng hai panel xếp dọc
         # Panel 1: Danh mục thuốc
         lbl_danh_muc = QLabel("DANH MỤC THUỐC")
         lbl_danh_muc.setStyleSheet("color: #0078D7; font-weight: bold;")
@@ -89,10 +89,10 @@ class QuanLyThuoc(QWidget):
         self.table_drugs.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_drugs.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_drugs.setSelectionMode(QTableWidget.SingleSelection)
-        # Make the drugs table larger and allow it to expand
+        # Mở rộng kích thước bảng thuốc và cho phép bảng mở rộng
         self.table_drugs.setMinimumHeight(300)
         self.table_drugs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # Column sizing: make 'Tên thuốc' stretch to fill available width
+        # Kích thước cột: làm cho 'Tên thuốc' giãn ra để lấp đầy chiều rộng
         header = self.table_drugs.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
@@ -127,9 +127,9 @@ class QuanLyThuoc(QWidget):
         btn_del.clicked.connect(self.on_delete_drug)
         btn_refresh.clicked.connect(self.load_drugs)
 
-        # Divider
+        # Dòng phân cách
         tab1_layout.addSpacing(8)
-        # The "Nhập thuốc" input area was removed per user request; keep only import history below.
+        # Phần "Nhập thuốc" đã bị loại theo yêu cầu người dùng; chỉ giữ lịch sử nhập phía dưới.
 
         # Bảng lịch sử nhập thuốc
         tab1_layout.addSpacing(8)
@@ -147,8 +147,8 @@ class QuanLyThuoc(QWidget):
         search_row.addStretch()
         tab1_layout.addLayout(search_row)
         
-        # Now include a 'Giá' column (from danh_muc_thuoc.gia_thuoc)
-        # Add a 'Xem' column (index 6) with a per-row button to view import details
+        # Thêm cột 'Giá' (lấy từ danh_muc_thuoc.gia_thuoc)
+        # Thêm cột 'Xem' (chỉ số 6) với nút trên mỗi hàng để xem chi tiết nhập
         self.table_import_drugs = QTableWidget(0, 7)
         self.table_import_drugs.setHorizontalHeaderLabels(["Ngày", "Mã thuốc", "Tên thuốc", "Đơn vị", "Giá", "Số lượng nhập", "Xem"])
         self.table_import_drugs.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -163,12 +163,12 @@ class QuanLyThuoc(QWidget):
         header_import.setSectionResizeMode(4, QHeaderView.Fixed)
         self.table_import_drugs.setColumnWidth(0, 150)
         self.table_import_drugs.setColumnWidth(1, 120)
-        # Make 'Đơn vị' and 'Số lượng nhập' columns wider for readability
+        # Mở rộng cột 'Đơn vị' và 'Số lượng nhập' để dễ đọc
         # Adjust widths: column 3 = Đơn vị, 4 = Giá, 5 = Số lượng
         self.table_import_drugs.setColumnWidth(3, 140)
         self.table_import_drugs.setColumnWidth(4, 120)
         self.table_import_drugs.setColumnWidth(5, 140)
-        # column 6 reserved for the 'Xem' button
+        # Cột 6 dành cho nút 'Xem'
         self.table_import_drugs.setColumnWidth(6, 100)
         tab1_layout.addWidget(self.table_import_drugs)
 
@@ -249,7 +249,7 @@ class QuanLyThuoc(QWidget):
         sh.setSectionResizeMode(1, QHeaderView.Stretch)
         sh.setSectionResizeMode(2, QHeaderView.Stretch)
         self.table_summary.setColumnWidth(0, 150)
-        # Usability: alternating colors, sorting, double-click to open details for that day
+        # Trải nghiệm người dùng: xen kẽ màu, cho phép sắp xếp, nhấp đúp để mở chi tiết cho ngày đó
         try:
             self.table_summary.setAlternatingRowColors(True)
         except Exception:
@@ -306,7 +306,7 @@ class QuanLyThuoc(QWidget):
         self.search_detail = QLineEdit()
         self.search_detail.setPlaceholderText("Tìm kiếm chi tiết (Bệnh nhân/Loại/Nội dung)...")
         self.search_detail.setMaximumWidth(350)
-        # Có nút clear nhỏ bên trong QLineEdit
+        # Có nút xóa nhỏ bên trong QLineEdit
         try:
             self.search_detail.setClearButtonEnabled(True)
         except Exception:
